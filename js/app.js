@@ -39,16 +39,27 @@
 
   // ---------- Encabezado y pie ----------
   function header() {
-    const links = [["inicio", "Inicio", `${BASE}`], ...V.paises.map(p => [p.id, p.nombre, `${BASE}${p.id}/`]),
-      ["presupuesto", "Presupuesto", `${BASE}#presupuesto`]];
+    // Países de la ruta base arriba; los que solo tienen ciudades opcionales van en "Otros países"
+    const base = V.paises.filter(p => p.ciudades.some(id => !ciudad(id).extra));
+    const otros = V.paises.filter(p => !base.includes(p));
+    const enlace = ([id, t, u]) => `<a href="${u}"${id === PAGE ? ' aria-current="page"' : ""}>${t}</a>`;
+    const links = [["inicio", "Inicio", `${BASE}`], ...base.map(p => [p.id, p.nombre, `${BASE}${p.id}/`])];
+    const mas = otros.length ? `<details class="mas"><summary${otros.some(p => p.id === PAGE) ? ' aria-current="page"' : ""}>Otros países</summary>
+      <div class="mas-menu">${otros.map(p => enlace([p.id, p.nombre, `${BASE}${p.id}/`])).join("")}</div></details>` : "";
     const h = document.createElement("header");
     h.className = "top";
     h.innerHTML = `<div class="wrap top-in">
       <a class="logo" href="${BASE}"><span class="logo-mark" aria-hidden="true"></span>${esc(V.titulo)}</a>
-      <nav aria-label="Secciones">${links.map(([id, t, u]) => `<a href="${u}"${id === PAGE ? ' aria-current="page"' : ""}>${t}</a>`).join("")}</nav>
+      <nav aria-label="Secciones">${links.map(enlace).join("")}${mas}${enlace(["presupuesto", "Presupuesto", `${BASE}#presupuesto`])}</nav>
       <button class="tema" id="btn-tema" type="button" aria-label="Cambiar tema claro u oscuro">◐</button>
     </div>`;
     body.prepend(h);
+    // Cierra "Otros países" al hacer clic fuera o con Escape
+    const det = h.querySelector(".mas");
+    if (det) {
+      document.addEventListener("click", e => { if (det.open && !det.contains(e.target)) det.open = false; });
+      document.addEventListener("keydown", e => { if (e.key === "Escape" && det.open) { det.open = false; det.querySelector("summary").focus(); } });
+    }
     $("#btn-tema").addEventListener("click", () => {
       const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
       document.documentElement.dataset.theme = t; store.set("rm-tema", t); mapas.forEach(m => m.tiles());
