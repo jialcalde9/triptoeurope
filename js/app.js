@@ -75,6 +75,7 @@
         ${V.creditos.map(([l, a, lic, u]) => `<li>${esc(l)}: <a href="${u}" target="_blank" rel="noopener">${esc(a)}</a>, ${esc(lic)} (Wikimedia Commons)</li>`).join("")}
         <li>Mapas: © OpenStreetMap, con Leaflet.</li>
       </ul></details>
+      <p class="firma">Hecho por Juan Ignacio Alcalde Gueneau de Mussy</p>
     </div>`;
     body.append(f);
   }
@@ -151,7 +152,7 @@
           <div><b id="h-paradas">11</b><span>paradas</span></div>
           <div><b id="h-costo">3,3 M</b><span>CLP por persona</span></div>
         </div>
-        <div class="sello"><span>Financiado en parte por</span><b>${esc(V.financian)}</b><small>Unos cracks. Merci infiniment.</small></div>
+        <div class="sello"><span>Financiado por</span><b>${esc(V.financian)}</b><small>Unos cracks. Merci infiniment.</small></div>
         </div>
       </div>
       <div class="slide-info"><span id="slide-lugar">${SLIDES[0][1]}</span>
