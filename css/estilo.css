@@ -47,11 +47,20 @@ html.bloqueado body { visibility: hidden; }
 .top-in { display: flex; align-items: center; gap: 16px; min-height: 60px; }
 .logo { font-family: var(--font-display); font-size: 1.5rem; color: var(--ink); text-decoration: none; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
 .logo-mark { width: 14px; height: 14px; border-radius: 50%; background: var(--rouge); box-shadow: 0 0 0 4px var(--accent-soft); }
-.top nav { display: flex; gap: 4px; overflow-x: auto; margin-left: auto; scrollbar-width: none; }
-.top nav a { color: var(--muted); text-decoration: none; font-weight: 600; font-size: .92rem; padding: 6px 10px; border-radius: 8px; white-space: nowrap; }
-.top nav a:hover, .top nav a[aria-current] { color: var(--ink); background: var(--accent-soft); }
+.top nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-left: auto; }
+.top nav a, .mas summary { color: var(--muted); text-decoration: none; font-weight: 600; font-size: .92rem; padding: 6px 10px; border-radius: 8px; white-space: nowrap; }
+.top nav a:hover, .top nav a[aria-current], .mas summary:hover, .mas summary[aria-current], .mas[open] summary { color: var(--ink); background: var(--accent-soft); }
+/* Menú "Otros países" */
+.mas { position: relative; }
+.mas summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.mas summary::-webkit-details-marker { display: none; }
+.mas summary::after { content: ""; width: 6px; height: 6px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .15s; }
+.mas[open] summary::after { transform: translateY(1px) rotate(-135deg); }
+.mas summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.mas-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 1100; display: grid; min-width: 190px; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgb(0 0 0 / .18); }
+.top nav .mas-menu a { padding: 8px 12px; }
 .tema { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 50%; width: 36px; height: 36px; cursor: pointer; flex: none; }
-@media (max-width: 760px) { .top-in { flex-wrap: wrap; padding-block: 8px; } .top nav { order: 3; width: 100%; margin: 0; } .tema { margin-left: auto; } }
+@media (max-width: 760px) { .top-in { flex-wrap: wrap; padding-block: 8px; } .top nav { order: 3; width: 100%; margin: 0; } .tema { margin-left: auto; } .mas-menu { right: auto; left: 0; } }
 
 /* Portadas */
 .hero { position: relative; color: #fff; background: #0D1321 var(--foto) center / cover; }
