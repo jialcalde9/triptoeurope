@@ -2,7 +2,7 @@
 // Coordenadas en [latitud, longitud]. Tipos de lugar: "ver", "comer", "panorama".
 window.VIAJE = {
   titulo: "Rumbo a Mussy",
-  bajada: "Tres o cuatro semanas entre hermanos para conocer el pueblo de donde viene la familia, recorrer Francia a concho, cruzar a Italia y cerrar en España.",
+  bajada: "Tres o cuatro semanas recorriendo Francia, Italia y España a concho, con una parada en Mussy-la-Fosse, el pueblo de donde viene la familia.",
   financian: "Antoine Gueneau de Mussy & Patricia Salas",
   // SHA-256 de la clave de entrada. Para cambiarla, ver README.md.
   claveHash: "e290f853bb8f79caf118a49c5728afa7a52cce9c843f252aa97f11e7cb763e97",
@@ -22,8 +22,8 @@ window.VIAJE = {
   // Orden de la ruta. "solo4" = parada que solo existe en la opción de 4 semanas.
   ciudades: {
     paris: {
-      nombre: "París", pais: "francia", c: [48.8566, 2.3522], noches: [4, 4], foto: "paris.jpg",
-      intro: "La entrada al viaje. Cuatro días para caminarla sin apuro, con un día aparte para Versalles.",
+      nombre: "París", pais: "francia", c: [48.8566, 2.3522], noches: [5, 5], foto: "paris.jpg",
+      intro: "La entrada al viaje. Cinco días para caminarla sin apuro, con un día aparte para Versalles.",
       hacer: ["Notre-Dame reabierta, Île de la Cité y picnic en la Île Saint-Louis", "Louvre u Orsay: elegir uno y reservar con hora", "Torre Eiffel al atardecer y el Sena en bici", "Montmartre y Sacré-Cœur", "Un día completo en Versalles"],
       comer: ["Croissant de panadería de barrio, no de cadena", "Crêpes en el barrio de Montparnasse", "Falafel en la rue des Rosiers, en el Marais"],
       tips: ["Desde el aeropuerto CDG, el RER B llega directo al centro.", "Los museos nacionales son gratis para menores de 26 de la UE, no para chilenos: presupuestar entradas."],
@@ -39,24 +39,21 @@ window.VIAJE = {
       ]
     },
     mussy: {
-      nombre: "Mussy-la-Fosse", pais: "francia", c: [47.5267, 4.4386], noches: [2, 3], foto: "mussy.jpg", raiz: true,
-      intro: "El pueblo de la familia, en el Auxois (Borgoña, Côte-d'Or). Muy chico, entre colinas verdes y casas de piedra, al lado del monte donde estuvo Alesia.",
-      hacer: ["Caminar el pueblo y entrar a la iglesia Saint-Léger", "Pasar por la mairie (municipalidad) y el cementerio a buscar el apellido", "MuséoParc Alésia: donde César venció a Vercingétorix", "Flavigny-sur-Ozerain: los anises y el pueblo donde se filmó Chocolat", "Abadía de Fontenay (UNESCO)", "Foto de los hermanos con el letrero del pueblo para los abuelos"],
-      comer: ["Bœuf bourguignon y œufs en meurette", "Quesos de la zona: époisses", "Anís de Flavigny para llevar de regalo"],
-      tips: ["Sin auto es muy difícil moverse: arrendar en Montbard.", "Antes del viaje, pedirle al abuelo nombres, casas, fotos y lugares que quiere que veamos.", "No confundir con Mussy-sur-Seine ni con Mussy-sous-Dun."],
-      sale: "Auto Mussy → Beaune y tren Dijon → Lyon · ~3 h 30",
+      nombre: "Mussy-la-Fosse", pais: "francia", c: [47.5267, 4.4386], noches: [0, 0], foto: "mussy.jpg", raiz: true, paso: true,
+      intro: "El pueblo de la familia, en el Auxois (Borgoña). Es muy chico, así que pasamos un par de horas camino a Beaune: lo justo para conocerlo y sacarnos la foto.",
+      hacer: ["Caminar el pueblo y entrar a la iglesia Saint-Léger", "Buscar el apellido en el cementerio", "Foto de los hermanos con el letrero del pueblo para los abuelos", "Si sobra tiempo: MuséoParc Alésia, a 5 minutos"],
+      comer: ["Almuerzo en Semur-en-Auxois o Flavigny, a 15–20 min"],
+      tips: ["El mismo día: TGV París → Montbard, auto, Mussy, Beaune y tren a Lyon desde Dijon.", "Antes del viaje, preguntarle al abuelo qué casa o lugar quiere que veamos."],
+      sale: "Auto Mussy → Beaune · ~1 h",
       lugares: [
         { n: "Mussy-la-Fosse e iglesia Saint-Léger", c: [47.5267, 4.4386], t: "ver" },
         { n: "MuséoParc Alésia", c: [47.5375, 4.4936], t: "ver" },
-        { n: "Flavigny-sur-Ozerain", c: [47.5133, 4.5300], t: "panorama" },
-        { n: "Semur-en-Auxois", c: [47.4917, 4.3333], t: "comer" },
-        { n: "Abadía de Fontenay", c: [47.6394, 4.3897], t: "ver" },
-        { n: "Estación de Montbard", c: [47.6236, 4.3375], t: "panorama" }
+        { n: "Semur-en-Auxois", c: [47.4917, 4.3333], t: "comer" }
       ]
     },
     beaune: {
       nombre: "Beaune", pais: "francia", c: [47.0216, 4.8379], noches: [0, 0], foto: "beaune.jpg", paso: true,
-      intro: "Parada de un día entre Mussy y Lyon, por la ruta de los grandes vinos de Borgoña.",
+      intro: "Tarde en Beaune, el mismo día de Mussy, por la ruta de los grandes vinos de Borgoña.",
       hacer: ["Hospices de Beaune y sus techos de colores", "Cata en una bodega de la Côte de Nuits"],
       comer: ["Escargots de Bourgogne", "Gougères con un vaso de vino"],
       tips: ["Devolver el auto en Dijon y seguir en tren a Lyon."],
@@ -64,7 +61,7 @@ window.VIAJE = {
       lugares: [{ n: "Hospices de Beaune", c: [47.0216, 4.8379], t: "ver" }]
     },
     lyon: {
-      nombre: "Lyon", pais: "francia", c: [45.7640, 4.8357], noches: [2, 2], foto: "lyon.jpg",
+      nombre: "Lyon", pais: "francia", c: [45.7640, 4.8357], noches: [2, 3], foto: "lyon.jpg",
       intro: "La capital gastronómica de Francia, con un casco antiguo lleno de pasajes escondidos.",
       hacer: ["Vieux Lyon y sus traboules, pasajes secretos entre edificios", "Subir a la basílica de Fourvière", "Place Bellecour y orillas del Ródano"],
       comer: ["Un bouchon lyonnais: quenelles y saucisson", "Les Halles Paul Bocuse"],
@@ -119,7 +116,7 @@ window.VIAJE = {
       ]
     },
     cinque: {
-      nombre: "Cinque Terre", pais: "italia", c: [44.1350, 9.6847], noches: [1, 1], foto: "cinque.jpg",
+      nombre: "Cinque Terre", pais: "italia", c: [44.1350, 9.6847], noches: [2, 2], foto: "cinque.jpg",
       intro: "Cinco pueblos de colores colgados sobre el mar, unidos por senderos y tren.",
       hacer: ["Sendero Vernazza → Monterosso", "Baño en el mar en Monterosso", "Atardecer en Manarola"],
       comer: ["Focaccia y pesto, que se inventaron aquí", "Cono de pescado frito"],
@@ -232,8 +229,8 @@ window.VIAJE = {
     ],
     // Auto: costo total del grupo (se divide por viajeros). Sin auto: costo por persona.
     autos: [
-      { id: "borgona", n: "Auto en Borgoña (3 días, Montbard → Mussy → Dijon)", eur: 240, sinAuto: 35, sinAutoN: "tren a Les Laumes-Alésia + traslados reservados" },
-      { id: "provenza", n: "Auto un día en Provenza (Pont du Gard y Arles)", eur: 90, sinAuto: 12, sinAutoN: "buses" }
+      { id: "borgona", ciudad: "mussy", n: "Auto un día en Borgoña (Montbard → Mussy → Beaune → Dijon)", eur: 130, sinAuto: 30, sinAutoN: "tren a Les Laumes-Alésia + taxi reservado" },
+      { id: "provenza", ciudad: "avignon", n: "Auto un día en Provenza (Pont du Gard y Arles)", eur: 90, sinAuto: 12, sinAutoN: "buses" }
     ],
     urbanoDia: 7,
     seguroDia: 2.7,
@@ -274,10 +271,11 @@ window.VIAJE = {
     ["Viajeros", "Confirmar cuántos hermanos van y días libres en común."],
     ["Papeles", "Pasaporte vigente y ETIAS, la autorización electrónica de la UE."],
     ["Pasajes", "Alertas de precio para llegar a ~700 mil, comprando 5–6 meses antes."],
-    ["Mussy", "Preguntar a los abuelos por familia, casas y lugares en el pueblo."]
+    ["Mussy", "Preguntarle al abuelo qué casa o lugar quiere que veamos en las horas que estemos ahí."]
   ],
 
   creditos: [
+    ["Portada, París al atardecer", "Alexander Kachkaev", "CC BY 2.0", "https://commons.wikimedia.org/wiki/File:Panorama_from_the_Eiffel_Tower_at_the_sunset,_Paris_20_April_2013.jpg"],
     ["París", "Benh LIEU SONG", "Dominio público", "https://commons.wikimedia.org/wiki/File:Tour_Eiffel_Wikimedia_Commons_(cropped).jpg"],
     ["Mussy-la-Fosse", "Pierre Lapointe", "CC BY-SA 4.0", "https://commons.wikimedia.org/wiki/File:Mussy-la-Fosse.jpg"],
     ["Iglesia Saint-Léger", "WCOMFR", "CC BY 4.0", "https://commons.wikimedia.org/wiki/File:MUSSY_LA_FOSSE.jpg"],

@@ -15,7 +15,8 @@
   };
   const ciudad = id => V.ciudades[id];
   const paisDe = id => V.paises.find(p => p.id === ciudad(id).pais);
-  const urlCiudad = id => id === "mussy" ? `${BASE}mussy/` : `${BASE}${ciudad(id).pais}/#${id}`;
+  const urlCiudad = id => `${BASE}${ciudad(id).pais}/#${id}`;
+  const SLIDES = [["paris", "París al atardecer"], ["cinque", "Vernazza, Cinque Terre"], ["florencia", "Florencia"], ["roma", "Roma"], ["niza", "Niza, Costa Azul"]];
 
   // ---------- Modo 3 / 4 semanas (compartido entre páginas) ----------
   let modo = store.get("rm-modo") === "4" ? 1 : 0;
@@ -38,7 +39,7 @@
 
   // ---------- Encabezado y pie ----------
   function header() {
-    const links = [["inicio", "Inicio", `${BASE}`], ["francia", "Francia", `${BASE}francia/`], ["mussy", "Mussy-la-Fosse", `${BASE}mussy/`],
+    const links = [["inicio", "Inicio", `${BASE}`], ["francia", "Francia", `${BASE}francia/`],
       ["italia", "Italia", `${BASE}italia/`], ["espana", "España", `${BASE}espana/`], ["presupuesto", "Presupuesto", `${BASE}#presupuesto`]];
     const h = document.createElement("header");
     h.className = "top";
@@ -85,28 +86,22 @@
     io.observe(el);
   }
 
-  let mapaRuta = null, capaRuta = null;
+  let mapaRuta = null, capaRuta = null, rutaActual = null;
+  const diasTxt = p => p.desde === p.hasta ? `Día ${p.desde}` : `Días ${p.desde}–${p.hasta}`;
+  const nochesTxt = n => n ? `${n} noche${n > 1 ? "s" : ""}` : "de paso";
   function dibujarRuta() {
-    if (!mapaRuta) return;
+    const r = rutaActual;
+    if (!mapaRuta || !r) return;
     if (capaRuta) mapaRuta.removeLayer(capaRuta);
     capaRuta = L.layerGroup().addTo(mapaRuta);
-    const { paradas } = calendario();
-    const pts = paradas.map(p => ciudad(p.id).c);
-    const iRoma = paradas.findIndex(p => p.id === "roma");
-    L.polyline(pts.slice(0, iRoma + 1), { className: "ruta" }).addTo(capaRuta);
-    L.polyline(pts.slice(iRoma, iRoma + 2), { className: "ruta vuelo" }).addTo(capaRuta);
-    L.polyline(pts.slice(iRoma + 1), { className: "ruta" }).addTo(capaRuta);
-    if (!modo) V.orden.filter(id => ciudad(id).solo4).forEach(id => {
-      L.marker(ciudad(id).c, { icon: pin("+", "alt") }).addTo(capaRuta)
-        .bindPopup(`<b>${esc(ciudad(id).nombre)}</b><br>Solo en la opción de 4 semanas`);
+    r.tramos.forEach((t, i) => L.polyline([r.paradas[i].ciudad.c, r.paradas[i + 1].ciudad.c],
+      { className: "ruta" + (t.tipo === "Vuelo" ? " vuelo" : "") }).addTo(capaRuta));
+    r.paradas.forEach((p, i) => {
+      const c = p.ciudad;
+      L.marker(c.c, { icon: pin(i + 1, c.id === "mussy" ? "raiz" : "") }).addTo(capaRuta)
+        .bindPopup(`<b>${esc(c.nombre)}</b><br>${diasTxt(p)} · ${nochesTxt(p.noches)}<br><a href="#parada-${p.id}">Ver detalle →</a>`);
     });
-    paradas.forEach((p, i) => {
-      const c = ciudad(p.id);
-      const dias = p.desde === p.hasta ? `Día ${p.desde}` : `Días ${p.desde}–${p.hasta}`;
-      L.marker(c.c, { icon: pin(i + 1, c.raiz ? "raiz" : "") }).addTo(capaRuta)
-        .bindPopup(`<b>${esc(c.nombre)}</b><br>${dias}${p.n ? ` · ${p.n} noche${p.n > 1 ? "s" : ""}` : " · de paso"}<br><a href="${urlCiudad(p.id)}">Ver detalle →</a>`);
-    });
-    mapaRuta.fitBounds(L.latLngBounds(pts).pad(0.08));
+    mapaRuta.fitBounds(L.latLngBounds(r.paradas.map(p => p.ciudad.c)).pad(0.08));
   }
 
   // ---------- Bloques reutilizables ----------
@@ -129,32 +124,41 @@
   function inicio() {
     const main = $("main");
     main.innerHTML = `
-    <section class="hero" style="--foto:url('${IMGABS}mussy.jpg')">
-      <div class="wrap hero-in">
-        <p class="eyebrow">Viaje de hermanos · Francia, Italia y España</p>
-        <h1>Rumbo a <em>Mussy</em></h1>
+    <section class="portada" aria-label="Portada">
+      <div class="slides" aria-hidden="true">${SLIDES.map(([f], i) => `<div class="slide${i ? "" : " on"}" style="background-image:url('${IMGABS}portada/${f}.jpg')"></div>`).join("")}</div>
+      <div class="wrap portada-in">
+        <p class="eyebrow">Viaje de hermanos · 2027</p>
+        <h1 class="titulo-epico">Europa <em>entre hermanos</em></h1>
         <p class="lede">${esc(V.bajada)}</p>
+        <div class="acciones"><a class="btn" href="#ruta">Ver la ruta</a><a class="btn ghost" href="#presupuesto">Armar el presupuesto</a></div>
+        <div class="portada-pie">
         <div class="hechos">
           <div><b id="h-dias">21</b><span>días</span></div>
-          <div><b>4</b><span>países</span></div>
+          <div><b id="h-paises">3</b><span>países</span></div>
           <div><b id="h-paradas">11</b><span>paradas</span></div>
           <div><b id="h-costo">3,3 M</b><span>CLP por persona</span></div>
         </div>
         <div class="sello"><span>Financiado en parte por</span><b>${esc(V.financian)}</b><small>Unos cracks. Merci infiniment.</small></div>
+        </div>
       </div>
+      <div class="slide-info"><span id="slide-lugar">${SLIDES[0][1]}</span>
+        <div class="puntos">${SLIDES.map(([, n], i) => `<button type="button" data-slide="${i}" aria-label="Ver ${n}"${i ? "" : ' aria-current="true"'}></button>`).join("")}</div></div>
     </section>
 
     <section class="wrap bloque" id="ruta">
-      <div class="cabeza"><p class="eyebrow">La ruta</p><h2>De París a Madrid</h2>
-        <p>Toca un número para ver cuántos días estamos ahí y saltar al detalle.</p>${selectorModo()}</div>
+      <div class="cabeza"><p class="eyebrow">Arma la ruta</p><h2>¿Por dónde vamos?</h2>
+        <p>Elige una ruta armada, o los países y días que quieras. El sitio ordena las ciudades desde París, reparte las noches y recalcula el presupuesto. Puedes sacar ciudades o sumarles noches con − y +.</p></div>
+      <div class="armador" id="armador"></div>
       <div class="ruta-grid">
         <div class="mapa grande" id="mapa-ruta" aria-label="Mapa de la ruta completa"></div>
         <ol class="itinerario" id="itinerario"></ol>
       </div>
+      <div class="paradas" id="paradas"></div>
     </section>
 
     <section class="wrap bloque">
-      <div class="cabeza"><p class="eyebrow">Los países</p><h2>Tres países y uno de regalo</h2></div>
+      <div class="cabeza"><p class="eyebrow">Fichas completas</p><h2>Francia, Italia y España en detalle</h2>
+        <p>Mapas con lugares, fotos, qué comer y datos útiles de cada ciudad.</p></div>
       <div class="paises">${V.paises.map(p => `
         <a class="pais" href="${BASE}${p.id}/">
           <img src="${BASE}img/${p.foto}" alt="" loading="lazy">
@@ -163,18 +167,9 @@
       </div>
     </section>
 
-    <section class="wrap bloque">
-      <a class="raiz-banner" href="${BASE}mussy/">
-        <img src="${BASE}img/mussy-iglesia.jpg" alt="Iglesia Saint-Léger de Mussy-la-Fosse" loading="lazy">
-        <div><p class="eyebrow">Parada obligatoria</p><h2>Mussy-la-Fosse</h2>
-        <p>El pueblo de donde viene la familia. Un día completo para caminarlo, buscar el apellido y conocer el Auxois.</p>
-        <span class="cta">Ver el plan del pueblo →</span></div>
-      </a>
-    </section>
-
     <section class="wrap bloque" id="presupuesto">
       <div class="cabeza"><p class="eyebrow">Presupuesto por persona</p><h2>Arma tu presupuesto</h2>
-        <p>Elige un perfil o ajusta cada cosa: dónde dormir, cuánto gastar en comida, si arrendamos auto y qué entradas compramos. Se guarda en tu navegador.</p>${selectorModo()}</div>
+        <p>Elige un perfil o ajusta cada cosa: dónde dormir, cuánto gastar en comida, si arrendamos auto y qué entradas compramos. Usa la ruta que armaste arriba y se guarda en tu navegador.</p></div>
       <div class="sim" id="simulador"></div>
     </section>
 
@@ -183,29 +178,51 @@
       <div class="pendientes">${V.pendientes.map(([t, d]) => `<article><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`).join("")}</div>
     </section>`;
 
-    const ruta = () => {
-      const { paradas, total } = calendario();
-      return { modo, dias: total, noches: total - 1, ciudades: new Set(paradas.map(p => p.id)) };
-    };
-    const sim = window.crearSimulador($("#simulador"), ruta,
-      t => { $("#h-costo").textContent = (t / 1e6).toFixed(1).replace(".", ",") + " M"; });
-
-    function render() {
-      const { paradas, total } = calendario();
-      $("#h-dias").textContent = total;
-      $("#h-paradas").textContent = paradas.length;
-      sim.actualizar();
+    let sim = null;
+    const nombrePais = id => (window.CATALOGO.paises.find(p => p.id === id) || {}).nombre || id;
+    // Se llama cada vez que el armador cambia la ruta
+    function render(r) {
+      rutaActual = r;
+      const ult = r.paradas[r.paradas.length - 1].ciudad;
+      $("#h-dias").textContent = r.dias;
+      $("#h-paises").textContent = r.paises.length;
+      $("#h-paradas").textContent = r.paradas.length;
       $("#itinerario").innerHTML = `<li class="vuelo-li"><span class="dia">Día 0</span><div><b>Vuelo Santiago → París</b><small>Noche a bordo</small></div></li>` +
-        paradas.map((p, i) => {
-          const c = ciudad(p.id);
-          return `<li${c.raiz ? ' class="raiz"' : ""}><span class="dia">${p.desde === p.hasta ? p.desde : `${p.desde}–${p.hasta}`}</span>
-            <div><a href="${urlCiudad(p.id)}"><b>${i + 1}. ${esc(c.nombre)}</b></a><small>${esc(paisDe(p.id).nombre)} · ${p.n ? `${p.n} noche${p.n > 1 ? "s" : ""}` : "de paso"}</small></div></li>`;
-        }).join("") + `<li class="vuelo-li"><span class="dia">Día ${total}</span><div><b>Vuelo Madrid → Santiago</b></div></li>`;
+        r.paradas.map((p, i) => {
+          const t = r.tramos[i];
+          return `<li${p.id === "mussy" ? ' class="raiz"' : ""}><span class="dia">${p.desde === p.hasta ? p.desde : `${p.desde}–${p.hasta}`}</span>
+            <div><a href="#parada-${p.id}"><b>${i + 1}. ${esc(p.ciudad.nombre)}</b></a><small>${esc(nombrePais(p.ciudad.pais))} · ${nochesTxt(p.noches)}</small>
+            ${t ? `<small class="tramo">→ ${t.tipo} a ${esc(r.paradas[i + 1].ciudad.nombre)} · ~${t.horas} h</small>` : ""}</div></li>`;
+        }).join("") + `<li class="vuelo-li"><span class="dia">Día ${r.dias}</span><div><b>Vuelo ${esc(ult.nombre)} → Santiago</b></div></li>`;
+      $("#paradas").innerHTML = r.paradas.filter(p => p.id !== "beaune").map(p => {
+        const c = p.ciudad, cred = c.credito && !c.credito.local ? `Foto: ${esc(c.credito.autor)}, ${esc(c.credito.lic)}` : "";
+        return `<article class="parada${p.id === "mussy" ? " raiz" : ""}" id="parada-${p.id}">
+          ${c.foto ? `<img src="${BASE}${c.foto}" alt="${esc(c.nombre)}" loading="lazy" title="${cred}">` : ""}
+          <div><p class="eyebrow">${esc(nombrePais(c.pais))} · ${diasTxt(p)} · ${nochesTxt(p.noches)}</p><h3>${esc(c.nombre)}</h3>
+          <p>${esc(c.resumen || "")}</p><ul>${c.imperdibles.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+          ${c.ficha ? `<a class="cta" href="${urlCiudad(p.id)}">Ver ficha completa →</a>` : ""}</div></article>`;
+      }).join("");
       dibujarRuta();
+      if (sim) sim.actualizar();
     }
-    enlazarModo(render);
+    const armador = window.crearArmador($("#armador"), render);
+    sim = window.crearSimulador($("#simulador"), armador.ruta,
+      t => { $("#h-costo").textContent = (t / 1e6).toFixed(1).replace(".", ",") + " M"; });
+    // Portada: fotos que se van cruzando cada 6 s (quieta si el usuario prefiere menos movimiento)
+    let actual = 0, timer = null;
+    const slides = [...document.querySelectorAll(".slide")];
+    function irA(i) {
+      actual = (i + slides.length) % slides.length;
+      slides.forEach((s, j) => s.classList.toggle("on", j === actual));
+      document.querySelectorAll("[data-slide]").forEach(b => b.toggleAttribute("aria-current", +b.dataset.slide === actual));
+      $("#slide-lugar").textContent = SLIDES[actual][1];
+    }
+    const quieto = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const andar = () => { clearInterval(timer); if (!quieto) timer = setInterval(() => irA(actual + 1), 6000); };
+    document.addEventListener("click", e => { const b = e.target.closest("[data-slide]"); if (b) { irA(+b.dataset.slide); andar(); } });
+    andar();
+
     alVer($("#mapa-ruta"), () => { mapaRuta = crearMapa("mapa-ruta"); dibujarRuta(); });
-    render();
   }
 
   // ---------- Ficha de ciudad ----------
@@ -234,7 +251,6 @@
         <p class="eyebrow">${esc(noches(c))}</p>
         <h2>${esc(c.nombre)}</h2>
         <p class="lede">${esc(c.intro)}</p>
-        ${c.raiz && PAGE !== "mussy" ? `<a class="cta" href="${BASE}mussy/">Ver la página del pueblo →</a>` : ""}
       </div>
       <div class="ciudad-grid">
         <div><h3>Qué hacer</h3><ul>${c.hacer.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
@@ -292,27 +308,6 @@
     p.ciudades.forEach(mapaCiudad);
   }
 
-  // ---------- Página de Mussy ----------
-  function mussy() {
-    document.title = `Mussy-la-Fosse · ${V.titulo}`;
-    $("main").innerHTML = `
-    <section class="hero" style="--foto:url('${IMGABS}mussy.jpg')">
-      <div class="wrap hero-in"><p class="eyebrow">Borgoña · Côte-d'Or · el origen de la familia</p>
-      <h1>Mussy-<em>la-Fosse</em></h1>
-      <p class="lede">Gueneau de Mussy: el apellido lo dice todo. Aquí pasamos un día completo, sin apuro, para conocer el pueblo y el Auxois.</p></div>
-    </section>
-    <section class="wrap bloque preguntas">
-      <div class="cabeza"><p class="eyebrow">Antes de ir</p><h2>Preguntas para el abuelo</h2></div>
-      <ol><li>¿Qué recuerda del pueblo? ¿Hay una casa o calle de la familia?</li>
-        <li>¿Quedan parientes o conocidos en Mussy o en los pueblos cercanos?</li>
-        <li>¿Dónde buscar el apellido: iglesia, cementerio, archivos de la mairie?</li>
-        <li>¿Hay fotos antiguas que podamos llevar para comparar?</li>
-        <li>¿Qué lugar de la zona no nos podemos perder?</li></ol>
-    </section>
-    <div class="wrap">${ficha("mussy")}</div>`;
-    mapaCiudad("mussy");
-  }
-
   // ---------- Clave ----------
   async function sha256(t) {
     const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
@@ -337,7 +332,7 @@
 
   header();
   if (PAGE === "inicio") inicio();
-  else if (PAGE === "mussy") mussy();
+  else if (PAGE === "mussy") return location.replace(`${BASE}francia/#mussy`); // página antigua: ahora Mussy es una parada dentro de Francia
   else pais(PAGE);
   footer();
   if (location.hash) setTimeout(() => document.getElementById(location.hash.slice(1))?.scrollIntoView(), 50);

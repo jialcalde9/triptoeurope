@@ -24,13 +24,15 @@ window.crearSimulador = function (raiz, getRuta, alCambiar) {
     const r = getRuta();
     const en = e => r.ciudades.has(e.ciudad);
     const aloj = porId(P.alojamiento, s.alojamiento), com = porId(P.comida, s.comida), tren = porId(P.trenes, s.trenes);
-    const autos = P.autos.reduce((t, a) => t + (s.autos.includes(a.id) ? a.eur / s.viajeros : a.sinAuto), 0);
+    const trenesEur = r.trenesEur ?? P.trenesBase[r.modo];
+    const autos = P.autos.filter(a => r.ciudades.has(a.ciudad))
+      .reduce((t, a) => t + (s.autos.includes(a.id) ? a.eur / s.viajeros : a.sinAuto), 0);
     const ents = P.entradas.filter(e => en(e) && s.entradas.includes(e.id));
     const filas = [
       ["Pasaje Santiago ↔ Europa", s.pasaje, "Ida y vuelta, multidestino"],
       ["Alojamiento", r.noches * aloj.eur * s.fx, `${r.noches} noches × ${eur(aloj.eur)}`],
       ["Comida", r.dias * com.eur * s.fx, `${r.dias} días × ${eur(com.eur)}`],
-      ["Trenes y vuelo interno", P.trenesBase[r.modo] * tren.f * s.fx, tren.n],
+      ["Trenes y vuelos internos", trenesEur * tren.f * s.fx, tren.n],
       ["Autos y traslados", autos * s.fx, s.autos.length ? `Auto dividido entre ${s.viajeros}` : "Sin auto"],
       ["Transporte en ciudades", r.dias * P.urbanoDia * s.fx, `${eur(P.urbanoDia)} por día`],
       ["Entradas", ents.reduce((t, e) => t + e.eur, 0) * s.fx, `${ents.length} entradas`],
@@ -60,8 +62,8 @@ window.crearSimulador = function (raiz, getRuta, alCambiar) {
       </div>
       <fieldset><legend>Alojamiento</legend>${radios("alojamiento", P.alojamiento, o => `${eur(o.eur)} por persona por noche`)}</fieldset>
       <fieldset><legend>Comida</legend>${radios("comida", P.comida, o => `${eur(o.eur)} por persona por día`)}</fieldset>
-      <fieldset><legend>Trenes y vuelo Roma–Barcelona</legend>${radios("trenes", P.trenes, o => `~${eur(Math.round(P.trenesBase[r.modo] * o.f))} por persona`)}</fieldset>
-      <fieldset><legend>Autos</legend>${P.autos.map(a => `<label class="opc"><input type="checkbox" name="autos" value="${a.id}"${s.autos.includes(a.id) ? " checked" : ""}>
+      <fieldset><legend>Trenes y vuelos internos</legend>${radios("trenes", P.trenes, o => `~${eur(Math.round((r.trenesEur ?? P.trenesBase[r.modo]) * o.f))} por persona`)}</fieldset>
+      <fieldset><legend>Autos</legend>${P.autos.filter(a => r.ciudades.has(a.ciudad)).map(a => `<label class="opc"><input type="checkbox" name="autos" value="${a.id}"${s.autos.includes(a.id) ? " checked" : ""}>
         <span>${esc(a.n)}<small>${eur(a.eur)} entre todos · sin auto: ${esc(a.sinAutoN)}, ${eur(a.sinAuto)} por persona</small></span></label>`).join("")}</fieldset>
       <fieldset><legend>Entradas</legend>
         <div class="ent-acciones"><button type="button" data-ent="rec">Recomendadas</button><button type="button" data-ent="todas">Todas</button><button type="button" data-ent="ninguna">Ninguna</button></div>

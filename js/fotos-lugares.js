@@ -311,5 +311,119 @@ window.FOTOS = {
   "autor": "Tim Adams",
   "lic": "CC BY-SA 4.0",
   "url": "https://commons.wikimedia.org/wiki/File:Palacio_Real_de_Madrid_Julio_2016_(cropped).jpg"
+ },
+ "Venecia": {
+  "f": "lugares/venecia.jpg",
+  "autor": "Didier Descouens",
+  "lic": "CC BY-SA 4.0",
+  "url": "https://commons.wikimedia.org/wiki/File:View_of_the_Grand_Canal_from_Rialto_to_Ca%27Foscari.jpg"
+ },
+ "Verona": {
+  "f": "lugares/verona.jpg",
+  "autor": "Claconvr",
+  "lic": "CC BY-SA 4.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Arena-XE3F2406a.jpg"
+ },
+ "Milán y lago de Como": {
+  "f": "lugares/milan-y-lago-de-como.jpg",
+  "autor": "Luca Casartelli",
+  "lic": "CC BY-SA 2.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Sentiero_del_Viandante_DSC_6340_(14020554463).jpg"
+ },
+ "Pisa": {
+  "f": "lugares/pisa.jpg",
+  "autor": "Arne Müseler",
+  "lic": "CC BY-SA 3.0 de",
+  "url": "https://commons.wikimedia.org/wiki/File:Italy_-_Pisa_-_Leaning_Tower.jpg"
+ },
+ "Nápoles y Costa Amalfitana": {
+  "f": "lugares/napoles-y-costa-amalfitana.jpg",
+  "autor": "JeCCo",
+  "lic": "CC BY 4.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Positano_Sunset.JPG"
+ },
+ "Sevilla": {
+  "f": "lugares/sevilla.jpg",
+  "autor": "Carlos Delgado",
+  "lic": "CC BY-SA 4.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Plaza_de_Espa%C3%B1a_(Sevilla)_-_01.jpg"
+ },
+ "Granada": {
+  "f": "lugares/granada.jpg",
+  "autor": "Jebulon",
+  "lic": "CC0",
+  "url": "https://commons.wikimedia.org/wiki/File:Dawn_Charles_V_Palace_Alhambra_Granada_Andalusia_Spain.jpg"
+ },
+ "Lucerna": {
+  "f": "lugares/lucerna.jpg",
+  "autor": "Simon Koopmann",
+  "lic": "CC BY-SA 2.5",
+  "url": "https://commons.wikimedia.org/wiki/File:Kapellbruecke.JPG"
+ },
+ "Interlaken": {
+  "f": "lugares/interlaken.jpg",
+  "autor": "Chensiyuan",
+  "lic": "CC BY-SA 4.0",
+  "url": "https://commons.wikimedia.org/wiki/File:1_lauterbrunnen_valley_wengen_2022.jpg"
+ },
+ "Zúrich": {
+  "f": "lugares/zurich.jpg",
+  "autor": "Roland zh",
+  "lic": "CC BY-SA 3.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Grossm%C3%BCnster_-_M%C3%BCnsterhof_2014-05-23_12-08-43.JPG"
+ },
+ "Ámsterdam": {
+  "f": "lugares/amsterdam.jpg",
+  "autor": "Andrés Barrios",
+  "lic": "CC BY-SA 4.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Imagen_de_los_canales_conc%C3%A9ntricos_en_%C3%81msterdam.png"
+ },
+ "Brujas": {
+  "f": "lugares/brujas.jpg",
+  "autor": "Adiel lo",
+  "lic": "CC BY-SA 3.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Brugge_Belfort_HDR.jpg"
+ },
+ "Londres": {
+  "f": "lugares/londres.jpg",
+  "autor": "Fuzzypiggy",
+  "lic": "CC BY-SA 3.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Tower_Bridge_at_Dawn.jpg"
+ },
+ "Múnich": {
+  "f": "lugares/munich.jpg",
+  "autor": "Diliff",
+  "lic": "CC BY-SA 3.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Rathaus_and_Marienplatz_from_Peterskirche_-_August_2006.jpg"
+ },
+ "Praga": {
+  "f": "lugares/praga.jpg",
+  "autor": "A.Savin",
+  "lic": "FAL",
+  "url": "https://commons.wikimedia.org/wiki/File:Prague_07-2016_view_from_Lesser_Town_Tower_of_Charles_Bridge_img3.jpg"
+ },
+ "Viena": {
+  "f": "lugares/viena.jpg",
+  "autor": "C.Stadler/Bwag",
+  "lic": "CC BY-SA 4.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Wien_-_Schloss_Sch%C3%B6nbrunn.JPG"
+ },
+ "Salzburgo": {
+  "f": "lugares/salzburgo.jpg",
+  "autor": "C.Stadler/Bwag",
+  "lic": "CC BY-SA 4.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Salzburg_-_Festung_Hohensalzburg.JPG"
+ },
+ "Lisboa": {
+  "f": "lugares/lisboa.jpg",
+  "autor": "Alvesgaspar",
+  "lic": "CC BY-SA 3.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Torre_Bel%C3%A9m_April_2009-4a.jpg"
+ },
+ "Oporto": {
+  "f": "lugares/oporto.jpg",
+  "autor": "Deensel",
+  "lic": "CC BY 2.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Dom_Lu%C3%ADs_I_Bridge_(36961760686).jpg"
  }
 };
