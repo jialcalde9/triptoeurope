@@ -39,8 +39,8 @@
 
   // ---------- Encabezado y pie ----------
   function header() {
-    const links = [["inicio", "Inicio", `${BASE}`], ["francia", "Francia", `${BASE}francia/`],
-      ["italia", "Italia", `${BASE}italia/`], ["espana", "España", `${BASE}espana/`], ["presupuesto", "Presupuesto", `${BASE}#presupuesto`]];
+    const links = [["inicio", "Inicio", `${BASE}`], ...V.paises.map(p => [p.id, p.nombre, `${BASE}${p.id}/`]),
+      ["presupuesto", "Presupuesto", `${BASE}#presupuesto`]];
     const h = document.createElement("header");
     h.className = "top";
     h.innerHTML = `<div class="wrap top-in">
@@ -117,7 +117,9 @@
       rerender();
     });
   }
-  const noches = c => c.paso ? "De paso" : c.solo4 ? `${c.noches[1]} noches · solo 4 semanas`
+  const noches = c => c.paso ? "De paso"
+    : c.extra ? `Opcional, se suma en el armador · ${c.noches[0] === c.noches[1] ? c.noches[0] : c.noches.join("–")} noche${c.noches[1] > 1 ? "s" : ""}`
+    : c.solo4 ? `${c.noches[1]} noches · solo 4 semanas`
     : c.noches[0] === c.noches[1] ? `${c.noches[0]} noche${c.noches[0] > 1 ? "s" : ""}` : `${c.noches[0]} noches · ${c.noches[1]} con 4 semanas`;
 
   // ---------- Inicio ----------
@@ -157,7 +159,7 @@
     </section>
 
     <section class="wrap bloque">
-      <div class="cabeza"><p class="eyebrow">Fichas completas</p><h2>Francia, Italia y España en detalle</h2>
+      <div class="cabeza"><p class="eyebrow">Fichas completas</p><h2>Cada país en detalle</h2>
         <p>Mapas con lugares, fotos, qué comer y datos útiles de cada ciudad.</p></div>
       <div class="paises">${V.paises.map(p => `
         <a class="pais" href="${BASE}${p.id}/">
@@ -297,13 +299,14 @@
     alVer($("#mapa-pais"), () => {
       const m = crearMapa("mapa-pais");
       const pts = p.ciudades.map(id => ciudad(id).c);
-      L.polyline(pts, { className: "ruta" }).addTo(m);
+      L.polyline(p.ciudades.filter(id => !ciudad(id).extra).map(id => ciudad(id).c), { className: "ruta" }).addTo(m);
       p.ciudades.forEach((cid, i) => {
         const c = ciudad(cid);
-        L.marker(c.c, { icon: pin(i + 1, c.raiz ? "raiz" : c.solo4 ? "alt" : "") }).addTo(m)
+        L.marker(c.c, { icon: pin(i + 1, c.raiz ? "raiz" : c.solo4 || c.extra ? "alt" : "") }).addTo(m)
           .bindPopup(`<b>${esc(c.nombre)}</b><br>${esc(noches(c))}<br><a href="#${cid}">Ver detalle →</a>`);
       });
-      m.fitBounds(L.latLngBounds(pts).pad(0.15));
+      if (pts.length > 1) m.fitBounds(L.latLngBounds(pts).pad(0.15));
+      else m.setView(pts[0], 10);
     });
     p.ciudades.forEach(mapaCiudad);
   }
