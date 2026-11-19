@@ -173,13 +173,9 @@
     </section>
 
     <section class="wrap bloque" id="presupuesto">
-      <div class="cabeza"><p class="eyebrow">Presupuesto por persona</p><h2>Cuánto cuesta</h2><p>${esc(V.presupuesto.nota)}</p></div>
-      <div class="presu">
-        <div class="tabla"><table><thead><tr><th>Ítem</th><th class="r">3 semanas</th><th class="r">4 semanas</th></tr></thead>
-          <tbody>${V.presupuesto.filas.map(([n, a, b, d]) => `<tr><td>${esc(n)}${d ? `<small>${esc(d)}</small>` : ""}</td><td class="r">${clp(a)}</td><td class="r">${clp(b)}</td></tr>`).join("")}</tbody>
-          <tfoot><tr><td>Total</td><td class="r" id="t3"></td><td class="r" id="t4"></td></tr></tfoot></table></div>
-        <div class="barras" id="barras"></div>
-      </div>
+      <div class="cabeza"><p class="eyebrow">Presupuesto por persona</p><h2>Arma tu presupuesto</h2>
+        <p>Elige un perfil o ajusta cada cosa: dónde dormir, cuánto gastar en comida, si arrendamos auto y qué entradas compramos. Se guarda en tu navegador.</p>${selectorModo()}</div>
+      <div class="sim" id="simulador"></div>
     </section>
 
     <section class="wrap bloque">
@@ -187,21 +183,18 @@
       <div class="pendientes">${V.pendientes.map(([t, d]) => `<article><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`).join("")}</div>
     </section>`;
 
-    const tot = i => V.presupuesto.filas.reduce((s, f) => s + f[i], 0);
-    const [t3, t4] = [tot(1), tot(2)], tope = V.presupuesto.tope;
-    $("#t3").textContent = clp(t3); $("#t4").textContent = clp(t4);
-    $("#barras").innerHTML = [["3 semanas", t3], ["4 semanas", t4]].map(([n, t]) => {
-      const dif = tope - t;
-      return `<div class="barra${dif < 0 ? " pasa" : ""}"><div class="fila"><span>${n}</span><b>${clp(t)}</b></div>
-        <div class="riel"><i style="width:${Math.min(100, t / tope * 100)}%"></i></div>
-        <small>${dif >= 0 ? `Quedan ${clp(dif)} de ${clp(tope)}` : `Se pasa ${clp(-dif)} sobre ${clp(tope)}`}</small></div>`;
-    }).join("") + `<p class="nota">El aporte de Antoine y Patricia baja estas cifras.</p>`;
+    const ruta = () => {
+      const { paradas, total } = calendario();
+      return { modo, dias: total, noches: total - 1, ciudades: new Set(paradas.map(p => p.id)) };
+    };
+    const sim = window.crearSimulador($("#simulador"), ruta,
+      t => { $("#h-costo").textContent = (t / 1e6).toFixed(1).replace(".", ",") + " M"; });
 
     function render() {
       const { paradas, total } = calendario();
       $("#h-dias").textContent = total;
       $("#h-paradas").textContent = paradas.length;
-      $("#h-costo").textContent = ((modo ? t4 : t3) / 1e6).toFixed(1).replace(".", ",") + " M";
+      sim.actualizar();
       $("#itinerario").innerHTML = `<li class="vuelo-li"><span class="dia">Día 0</span><div><b>Vuelo Santiago → París</b><small>Noche a bordo</small></div></li>` +
         paradas.map((p, i) => {
           const c = ciudad(p.id);
@@ -217,6 +210,22 @@
 
   // ---------- Ficha de ciudad ----------
   const TIPOS = { ver: "Para ver", comer: "Para comer", panorama: "Panorama" };
+  const FOTOS = window.FOTOS || {};
+  function fotoLugar(l, i) {
+    const f = FOTOS[l.n];
+    const cred = !f ? "" : f.local ? "Foto: Wikimedia Commons (ver créditos al pie)"
+      : `Foto: <a href="${f.url}" target="_blank" rel="noopener">${esc(f.autor)}</a>, ${esc(f.lic)}`;
+    return `${f ? `<img src="${BASE}img/${f.f}" alt="${esc(l.n)}">` : `<div class="sin-foto">Sin foto todavía</div>`}
+      <figcaption><span class="pin ${l.t}">${i + 1}</span><span><b>${esc(l.n)}</b><small>${TIPOS[l.t]} · ${cred}</small></span></figcaption>`;
+  }
+  // Muestra la foto del lugar, lo marca en la lista y lo centra en el mapa
+  function seleccionar(id, i, mover = true) {
+    const c = ciudad(id);
+    document.getElementById("foto-" + id).innerHTML = fotoLugar(c.lugares[i], i);
+    document.querySelectorAll(`[data-mapa="${id}"]`).forEach(b => b.toggleAttribute("aria-current", +b.dataset.i === i));
+    const mk = marcadores[id];
+    if (mk && mover) { mk.m.setView(mk.ms[i].getLatLng(), Math.max(mk.m.getZoom(), 14)); mk.ms[i].openPopup(); }
+  }
   function ficha(id) {
     const c = ciudad(id);
     return `<article class="ciudad${c.raiz ? " raiz" : ""}" id="${id}">
@@ -232,8 +241,11 @@
           <h3>Qué comer</h3><ul>${c.comer.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
           <h3>Datos útiles</h3><ul>${c.tips.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
           <p class="sale">Siguiente tramo: ${esc(c.sale)}</p></div>
-        <div><div class="mapa" id="mapa-${id}" aria-label="Mapa de ${esc(c.nombre)}"></div>
-          <ol class="lugares">${c.lugares.map((l, i) => `<li><button type="button" data-mapa="${id}" data-i="${i}"><span class="pin ${l.t}">${i + 1}</span>${esc(l.n)}<small>${TIPOS[l.t]}</small></button></li>`).join("")}</ol></div>
+        <div class="lugares-col"><div class="mapa" id="mapa-${id}" aria-label="Mapa de ${esc(c.nombre)}"></div>
+          <figure class="lugar-foto" id="foto-${id}" aria-live="polite">${fotoLugar(c.lugares[0], 0)}</figure>
+          <ol class="lugares">${c.lugares.map((l, i) => `<li><button type="button" data-mapa="${id}" data-i="${i}"${i ? "" : ' aria-current="true"'}>
+            <span class="mini">${FOTOS[l.n] ? `<img src="${BASE}img/${FOTOS[l.n].f}" alt="" loading="lazy">` : ""}<span class="pin ${l.t}">${i + 1}</span></span>
+            <span>${esc(l.n)}<small>${TIPOS[l.t]}</small></span></button></li>`).join("")}</ol></div>
       </div>
     </article>`;
   }
@@ -244,16 +256,15 @@
     alVer(el, () => {
       const m = crearMapa(el);
       marcadores[id] = { m, ms: c.lugares.map((l, i) => L.marker(l.c, { icon: pin(i + 1, l.t) }).addTo(m)
-        .bindPopup(`<b>${esc(l.n)}</b><br>${TIPOS[l.t]}<br><a href="https://www.openstreetmap.org/?mlat=${l.c[0]}&mlon=${l.c[1]}#map=16/${l.c[0]}/${l.c[1]}" target="_blank" rel="noopener">Abrir en mapa →</a>`)) };
+        .on("click", () => seleccionar(id, i, false))
+        .bindPopup(`<b>${esc(l.n)}</b><br>${TIPOS[l.t]}<br><a href="https://www.google.com/maps/search/?api=1&query=${l.c[0]},${l.c[1]}" target="_blank" rel="noopener">Cómo llegar →</a>`)) };
       if (c.lugares.length > 1) m.fitBounds(L.latLngBounds(c.lugares.map(l => l.c)).pad(0.25), { maxZoom: 15 });
       else m.setView(c.lugares[0].c, 15);
     });
   }
   document.addEventListener("click", e => {
     const b = e.target.closest("[data-mapa]");
-    if (!b || !marcadores[b.dataset.mapa]) return;
-    const { m, ms } = marcadores[b.dataset.mapa], mk = ms[+b.dataset.i];
-    m.setView(mk.getLatLng(), Math.max(m.getZoom(), 14)); mk.openPopup();
+    if (b) seleccionar(b.dataset.mapa, +b.dataset.i);
   });
 
   // ---------- Página de país ----------

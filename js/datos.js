@@ -209,18 +209,63 @@ window.VIAJE = {
 
   orden: ["paris", "mussy", "beaune", "lyon", "annecy", "avignon", "niza", "cinque", "florencia", "roma", "barcelona", "donostia", "madrid"],
 
+  // Simulador de presupuesto. Montos en EUR salvo el pasaje (CLP). Precios aproximados: confirmar antes de comprar.
   presupuesto: {
-    nota: "Por persona, en CLP. Tipo de cambio 1 € = 1.100 CLP. Números gruesos, no cotizaciones.",
-    filas: [
-      ["Pasajes Santiago → París / Madrid → Santiago", 700000, 700000, "Meta: tarifa promo multidestino"],
-      ["Alojamiento", 880000, 1188000, "~40 € por persona por noche · 20 / 27 noches"],
-      ["Comida", 810000, 1078000, "~35 € por día"],
-      ["Transporte interno", 385000, 473000, "Trenes, vuelo Roma–Barcelona, auto"],
-      ["Entradas y panoramas", 275000, 330000, "Museos, Vaticano, Sagrada Familia, Alesia"],
-      ["Seguro de viaje", 60000, 80000, ""],
-      ["Imprevistos", 200000, 250000, ""]
+    tope: 4000000,
+    fx: 1100,
+    alojamiento: [
+      { id: "hostal", n: "Hostal, pieza compartida", eur: 25 },
+      { id: "airbnb", n: "Departamento entre hermanos", eur: 40 },
+      { id: "hotel", n: "Hotel 3 estrellas", eur: 65 }
     ],
-    tope: 4000000
+    comida: [
+      { id: "super", n: "Supermercado y picnic", eur: 20 },
+      { id: "mixto", n: "Mixto: menú del día y algunas comidas buenas", eur: 35 },
+      { id: "restoran", n: "Restoranes casi siempre", eur: 55 }
+    ],
+    // Suma de trenes + vuelo Roma–Barcelona por persona: [3 semanas, 4 semanas]
+    trenesBase: [340, 435],
+    trenes: [
+      { id: "anticipado", n: "Comprados con 2–3 meses", f: 0.75 },
+      { id: "normal", n: "Precio normal", f: 1 },
+      { id: "ultimo", n: "A última hora", f: 1.35 }
+    ],
+    // Auto: costo total del grupo (se divide por viajeros). Sin auto: costo por persona.
+    autos: [
+      { id: "borgona", n: "Auto en Borgoña (3 días, Montbard → Mussy → Dijon)", eur: 240, sinAuto: 35, sinAutoN: "tren a Les Laumes-Alésia + traslados reservados" },
+      { id: "provenza", n: "Auto un día en Provenza (Pont du Gard y Arles)", eur: 90, sinAuto: 12, sinAutoN: "buses" }
+    ],
+    urbanoDia: 7,
+    seguroDia: 2.7,
+    // rec: recomendada en perfil equilibrado · basica: incluida en perfil mochilero
+    entradas: [
+      { id: "louvre", n: "Museo del Louvre", ciudad: "paris", eur: 22, rec: true, basica: true },
+      { id: "orsay", n: "Museo de Orsay", ciudad: "paris", eur: 16 },
+      { id: "eiffel", n: "Torre Eiffel, cima en ascensor", ciudad: "paris", eur: 36, rec: true },
+      { id: "versalles", n: "Versalles, pasaporte", ciudad: "paris", eur: 32, rec: true },
+      { id: "notredame", n: "Torres de Notre-Dame", ciudad: "paris", eur: 16 },
+      { id: "alesia", n: "MuséoParc Alésia", ciudad: "mussy", eur: 12, rec: true, basica: true },
+      { id: "fontenay", n: "Abadía de Fontenay", ciudad: "mussy", eur: 13, rec: true },
+      { id: "hospices", n: "Hospices de Beaune", ciudad: "beaune", eur: 13 },
+      { id: "papas", n: "Palacio de los Papas", ciudad: "avignon", eur: 15, rec: true },
+      { id: "pontdugard", n: "Pont du Gard", ciudad: "avignon", eur: 10 },
+      { id: "casino", n: "Casino de Montecarlo", ciudad: "niza", eur: 18 },
+      { id: "cinqueterre", n: "Cinque Terre Card con trenes (1 día)", ciudad: "cinque", eur: 33, rec: true, basica: true },
+      { id: "cupula", n: "Cúpula del Duomo", ciudad: "florencia", eur: 30, rec: true },
+      { id: "uffizi", n: "Galería Uffizi", ciudad: "florencia", eur: 25 },
+      { id: "coliseo", n: "Coliseo, Foro y Palatino", ciudad: "roma", eur: 18, rec: true, basica: true },
+      { id: "vaticano", n: "Museos Vaticanos y Capilla Sixtina", ciudad: "roma", eur: 25, rec: true, basica: true },
+      { id: "sagrada", n: "Sagrada Familia con torre", ciudad: "barcelona", eur: 36, rec: true, basica: true },
+      { id: "guell", n: "Park Güell", ciudad: "barcelona", eur: 18 },
+      { id: "batllo", n: "Casa Batlló", ciudad: "barcelona", eur: 35 },
+      { id: "prado", n: "Museo del Prado", ciudad: "madrid", eur: 15, rec: true }
+    ],
+    perfiles: {
+      mochilero: { n: "Mochilero", alojamiento: "hostal", comida: "super", trenes: "anticipado", autos: [], entradas: "basica", imprevistos: 5 },
+      equilibrado: { n: "Equilibrado", alojamiento: "airbnb", comida: "mixto", trenes: "normal", autos: ["borgona"], entradas: "rec", imprevistos: 7 },
+      comodo: { n: "Cómodo", alojamiento: "hotel", comida: "restoran", trenes: "normal", autos: ["borgona", "provenza"], entradas: "todas", imprevistos: 10 }
+    },
+    inicial: { perfil: "equilibrado", viajeros: 4, pasaje: 700000 }
   },
 
   pendientes: [
