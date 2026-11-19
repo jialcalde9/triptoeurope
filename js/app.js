@@ -163,6 +163,7 @@
       <div class="cabeza"><p class="eyebrow">Arma la ruta</p><h2>¿Por dónde vamos?</h2>
         <p>Elige una ruta armada, o los países y días que quieras. El sitio ordena las ciudades desde París, reparte las noches y recalcula el presupuesto. Puedes sacar ciudades o sumarles noches con − y +.</p></div>
       <div class="armador" id="armador"></div>
+      <p class="arm-total" id="arm-total" aria-live="polite"></p>
       <div class="ruta-grid">
         <div class="mapa grande" id="mapa-ruta" aria-label="Mapa de la ruta completa"></div>
         <ol class="itinerario" id="itinerario"></ol>
@@ -219,9 +220,20 @@
       dibujarRuta();
       if (sim) sim.actualizar();
     }
-    const armador = window.crearArmador($("#armador"), render);
+    const millones = t => (t / 1e6).toFixed(1).replace(".", ",") + " M";
+    // Estimado por persona de cada ruta armada y de la ruta actual, con los ajustes del simulador
+    function costos() {
+      if (!sim) return;
+      armador.rutas.forEach(x => {
+        const el = document.querySelector(`[data-costo="${x.id}"]`);
+        if (el) el.textContent = `~${millones(sim.estimar(armador.rutaArmada(x.id)))} por persona`;
+      });
+      $("#arm-total").innerHTML = `Esta ruta sale <b>~${millones(sim.estimar(armador.ruta()))} CLP por persona</b> · <a href="#presupuesto">ver el detalle</a>`;
+    }
+    const armador = window.crearArmador($("#armador"), r => { render(r); costos(); });
     sim = window.crearSimulador($("#simulador"), armador.ruta,
-      t => { $("#h-costo").textContent = (t / 1e6).toFixed(1).replace(".", ",") + " M"; });
+      t => { $("#h-costo").textContent = millones(t); costos(); });
+    costos();
     // Portada: fotos que se van cruzando cada 6 s (quieta si el usuario prefiere menos movimiento)
     let actual = 0, timer = null;
     const slides = [...document.querySelectorAll(".slide")];

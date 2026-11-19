@@ -71,13 +71,14 @@ window.crearArmador = function (raiz, alCambiar) {
     return { n, quitadas };
   }
 
-  function ruta() {
-    const enPais = Object.keys(C).filter(id => s.paises.includes(C[id].pais) && !s.fuera.includes(id));
+  // st = estado a calcular (por defecto el actual; también sirve para estimar una ruta armada sin elegirla)
+  function ruta(st = s) {
+    const enPais = Object.keys(C).filter(id => st.paises.includes(C[id].pais) && !st.fuera.includes(id));
     let n, quitadas = [];
-    if (Object.keys(s.noches).length) {
+    if (Object.keys(st.noches).length) {
       n = {};
-      enPais.filter(id => !C[id].fija).forEach(id => (n[id] = s.noches[id] ?? Math.max(1, C[id].min)));
-    } else ({ n, quitadas } = repartir(enPais, s.dias - 1));
+      enPais.filter(id => !C[id].fija).forEach(id => (n[id] = st.noches[id] ?? Math.max(1, C[id].min)));
+    } else ({ n, quitadas } = repartir(enPais, st.dias - 1));
     const ids = enPais.filter(id => C[id].fija || id in n);
     let dia = 1;
     const paradas = ordenar(ids).map(id => {
@@ -103,7 +104,7 @@ window.crearArmador = function (raiz, alCambiar) {
     const conAjuste = Object.keys(s.noches).length > 0;
     raiz.innerHTML = `
       <div class="arm-rutas" role="group" aria-label="Rutas armadas">${K.rutas.map(x =>
-        `<button type="button" data-ruta="${x.id}" aria-pressed="${s.ruta === x.id}"><b>${esc(x.n)}</b><small>${esc(x.d)}</small></button>`).join("")}</div>
+        `<button type="button" data-ruta="${x.id}" aria-pressed="${s.ruta === x.id}"><b>${esc(x.n)}</b><small>${esc(x.d)}</small><span class="arm-costo" data-costo="${x.id}"></span></button>`).join("")}</div>
       <div class="arm-ctrl">
         <div><p class="eyebrow">Países</p><div class="chips">${K.paises.map(p =>
           `<button type="button" class="chip" data-pais="${p.id}" aria-pressed="${s.paises.includes(p.id)}"${p.fijo ? " disabled" : ""}>${esc(p.nombre)}</button>`).join("")}</div></div>
@@ -155,5 +156,5 @@ window.crearArmador = function (raiz, alCambiar) {
   });
 
   render();
-  return { ruta, C };
+  return { ruta: () => ruta(), rutaArmada: id => ruta(desdeRuta(K.rutas.find(x => x.id === id))), rutas: K.rutas, C };
 };

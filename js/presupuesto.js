@@ -20,8 +20,8 @@ window.crearSimulador = function (raiz, getRuta, alCambiar) {
   try { s = { ...inicial(), ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch (e) { s = inicial(); }
   const guardar = () => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} };
 
-  function calcular() {
-    const r = getRuta();
+  // r = ruta a calcular; por defecto la que está armada. Con otra ruta sirve para comparar.
+  function calcular(r = getRuta()) {
     const en = e => r.ciudades.has(e.ciudad);
     const aloj = porId(P.alojamiento, s.alojamiento), com = porId(P.comida, s.comida), tren = porId(P.trenes, s.trenes);
     const trenesEur = r.trenesEur ?? P.trenesBase[r.modo];
@@ -122,5 +122,5 @@ window.crearSimulador = function (raiz, getRuta, alCambiar) {
   });
 
   controles(); resultado();
-  return { actualizar() { controles(); resultado(); } };
+  return { actualizar() { controles(); resultado(); }, estimar: r => calcular(r).total };
 };
