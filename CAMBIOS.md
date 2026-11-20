@@ -3,6 +3,8 @@
 Lo más nuevo arriba. Cada cambio publicado agrega una entrada.
 
 ## 2026-11-20
+- **Votación entre hermanos**: cada uno escribe su nombre y vota 👍 o 👎 en cada ciudad de la ruta. El botón "Copiar enlace de esta ruta" ahora lleva la ruta y los votos de quien lo manda; al abrirlo, los demás los ven sumados a los suyos (con los nombres) y pueden quitar los de alguien. No hay servidor: los votos viajan en el enlace y se guardan en cada navegador.
+- Versión de enlaces subida a `?v=7`.
 - **Antes de viajar** (sección nueva): se pone la fecha de salida y aparece cuántos días faltan. Hay una lista de tareas (pasaportes, pasajes, alojamientos, seguro, etc.) y las reservas con anticipación (Última Cena, Alhambra, Torre Eiffel, Coliseo, Uffizi, Sagrada Familia…) solo de las ciudades de la ruta, cada una con su fecha límite. Lo marcado queda guardado en el navegador. Los plazos son aproximados: confirmar en los sitios oficiales.
 - Versión de enlaces subida a `?v=6`.
 - **Compartir la ruta**: botón "Copiar enlace de esta ruta". Quien abre el enlace ve la misma ruta (ciudades, noches, orden y días) y puede cambiarla.

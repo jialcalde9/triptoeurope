@@ -141,12 +141,18 @@
     const CAT = window.CATALOGO;
     const codificar = o => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     const decodificar = q => JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g, "+").replace(/_/g, "/")))));
+    const VK = "rm-votos";
+    let VT = { yo: "", personas: {} };
+    try { const g = JSON.parse(localStorage.getItem(VK)); if (g && g.personas && typeof g.personas === "object") VT = { yo: String(g.yo || "").slice(0, 20), personas: g.personas }; } catch (e) {}
+    const guardarVotos = () => { try { localStorage.setItem(VK, JSON.stringify(VT)); } catch (e) {} };
+    const limpiar = n => String(n || "").replace(/[^\p{L}\p{N} ._-]/gu, "").trim().slice(0, 20);
+    const kp = n => "p:" + n;
     let avisoImport = false;
     (function importar() {
       const q = new URLSearchParams(location.search).get("r");
       if (!q) return;
       try {
-        const s = decodificar(q), ok = id => typeof id === "string" && Object.prototype.hasOwnProperty.call(CAT.ciudades, id);
+        const d = decodificar(q), s = d.s || d, ok = id => typeof id === "string" && Object.prototype.hasOwnProperty.call(CAT.ciudades, id);
         const paises = (Array.isArray(s.paises) ? s.paises : []).filter(p => CAT.paises.some(x => x.id === p));
         if (!paises.length) return;
         const noches = {};
@@ -155,6 +161,12 @@
         localStorage.setItem("rm-ruta", JSON.stringify({ ruta: null, paises, fuera: (Array.isArray(s.fuera) ? s.fuera : []).filter(ok), noches,
           dias: Math.max(14, Math.min(35, Math.round(+s.dias) || 21)), orden: orden.length ? orden : null }));
         avisoImport = true;
+        const nom = limpiar(d.n);
+        if (nom && nom !== VT.yo && d.v && typeof d.v === "object") {
+          const v = {};
+          Object.entries(d.v).forEach(([k, x]) => { if (ok(k) && (x === 1 || x === -1)) v[k] = x; });
+          VT.personas[kp(nom)] = v; guardarVotos();
+        }
         history.replaceState(null, "", location.pathname + location.hash);
       } catch (e) {}
     })();
@@ -200,6 +212,7 @@
         <div class="mapa grande" id="mapa-ruta" aria-label="Mapa de la ruta completa"></div>
         <ol class="itinerario" id="itinerario"></ol>
       </div>
+      <div class="votos-panel" id="votos"></div>
       <div class="paradas" id="paradas"></div>
       <div class="barra-fija" id="barra" aria-live="polite"></div>
     </section>
@@ -266,9 +279,11 @@
           ${c.foto ? `<img src="${BASE}${c.foto}" alt="${esc(c.nombre)}" loading="lazy" title="${cred}">` : ""}
           <div><p class="eyebrow">${esc(nombrePais(c.pais))} · ${diasTxt(p)} · ${nochesTxt(p.noches)}</p><h3>${esc(c.nombre)}</h3>
           <p>${esc(c.resumen || "")}</p><ul>${c.imperdibles.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+          <div class="voto" data-voto="${p.id}"></div>
           ${c.ficha ? `<a class="cta" href="${urlCiudad(p.id)}">Ver ficha completa →</a>` : ""}</div></article>`;
       }).join("");
       dibujarRuta();
+      pintarVotos();
       pintarAntes();
       if (sim) sim.actualizar();
     }
@@ -312,7 +327,7 @@
       if (!b) return;
       if (b.id === "btn-imprimir") window.print();
       if (b.id === "btn-compartir") {
-        const url = location.origin + location.pathname + "?r=" + codificar(armador.estado());
+        const url = location.origin + location.pathname + "?r=" + codificar({ s: armador.estado(), n: VT.yo, v: (VT.yo && VT.personas[kp(VT.yo)]) || {} });
         let ok = false;
         try { await navigator.clipboard.writeText(url); ok = true; } catch (err) {}
         if (!ok) prompt("Copia este enlace:", url);
@@ -365,6 +380,37 @@
     document.addEventListener("change", e => {
       if (e.target.id === "a-fecha") { AN.fecha = e.target.value; guardarAN(); pintarAntes(); }
       else if (e.target.dataset && e.target.dataset.chk) { AN.hechos[e.target.dataset.chk] = e.target.checked; guardarAN(); }
+    });
+    function pintarVotos() {
+      const mios = VT.personas[kp(VT.yo)] || {};
+      document.querySelectorAll("[data-voto]").forEach(el => {
+        const id = el.dataset.voto, quien = Object.entries(VT.personas).filter(([, v]) => v && v[id]).map(([k, v]) => [k.slice(2), v[id]]);
+        const si = quien.filter(x => x[1] === 1).map(x => x[0]), no = quien.filter(x => x[1] === -1).map(x => x[0]);
+        el.innerHTML = `<span>¿Vamos?</span><button type="button" data-v="1" data-id="${id}" aria-pressed="${mios[id] === 1}" aria-label="A favor">👍</button><button type="button" data-v="-1" data-id="${id}" aria-pressed="${mios[id] === -1}" aria-label="En contra">👎</button>` +
+          (quien.length ? `<small>${si.length ? `👍 ${si.length} (${esc(si.join(", "))})` : ""}${si.length && no.length ? " · " : ""}${no.length ? `👎 ${no.length} (${esc(no.join(", "))})` : ""}</small>` : "");
+      });
+      const otros = Object.keys(VT.personas).map(k => k.slice(2));
+      $("#votos").innerHTML = `<div class="votos-fila"><label>Tu nombre <input id="v-nombre" maxlength="20" placeholder="Ej: Juan" value="${esc(VT.yo)}"></label><span id="v-msg" aria-live="polite"></span></div>
+        <p class="votos-nota">Pon tu nombre y vota 👍 o 👎 en cada ciudad de la ruta (abajo). Luego usa "Copiar enlace de esta ruta": el enlace lleva tu ruta y tus votos, y al abrirlo tus hermanos los ven y suman los suyos.</p>
+        ${otros.length ? `<p class="votos-quienes">Votos de: ${otros.map(n => `<span class="chip-v">${esc(n)}${n === VT.yo ? "" : ` <button type="button" data-quitar="${esc(n)}" aria-label="Quitar votos de ${esc(n)}">×</button>`}</span>`).join(" ")}</p>` : ""}`;
+    }
+    document.addEventListener("click", e => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.dataset.v) {
+        if (!VT.yo) { const n = $("#v-nombre"); n.focus(); $("#v-msg").textContent = "Primero escribe tu nombre."; return; }
+        const k = kp(VT.yo), v = VT.personas[k] = VT.personas[k] || {};
+        if (v[b.dataset.id] === +b.dataset.v) delete v[b.dataset.id]; else v[b.dataset.id] = +b.dataset.v;
+        guardarVotos(); pintarVotos();
+      } else if (b.dataset.quitar) {
+        delete VT.personas[kp(b.dataset.quitar)]; guardarVotos(); pintarVotos();
+      }
+    });
+    document.addEventListener("change", e => {
+      if (e.target.id !== "v-nombre") return;
+      const n = limpiar(e.target.value), antes = VT.yo;
+      if (antes && n && n !== antes && VT.personas[kp(antes)]) { VT.personas[kp(n)] = VT.personas[kp(antes)]; delete VT.personas[kp(antes)]; }
+      VT.yo = n; guardarVotos(); pintarVotos();
     });
     const it = $("#itinerario");
     const ids = () => [...it.querySelectorAll("li.mov")].map(l => l.dataset.id);

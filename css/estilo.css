@@ -412,3 +412,20 @@ html { scroll-behavior: smooth; }
 .check li:has(input:checked) label { opacity: .55; }
 .check li:has(input:checked) b { text-decoration: line-through; }
 @media (max-width: 760px) { .antes-grid { grid-template-columns: 1fr; } }
+
+/* Votos */
+.votos-panel { margin: 28px 0 8px; padding: 16px 18px; border: 1px dashed var(--line); border-radius: 14px; background: var(--surface); display: grid; gap: 10px; }
+.votos-fila { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+.votos-fila label { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.votos-fila input { font: inherit; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 11em; }
+#v-msg { color: var(--rouge); font-weight: 600; font-size: .9rem; }
+.votos-nota { margin: 0; color: var(--muted); font-size: .9rem; }
+.votos-quienes { margin: 0; font-size: .9rem; }
+.chip-v { display: inline-flex; gap: 4px; align-items: center; padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); margin-right: 4px; }
+.chip-v button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; }
+.voto { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 10px 0; font-size: .9rem; }
+.voto > span { color: var(--muted); }
+.voto button { width: 34px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: .95rem; }
+.voto button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.voto small { color: var(--muted); }
+@media print { .votos-panel, .voto { display: none !important; } }
