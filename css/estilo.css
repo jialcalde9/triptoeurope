@@ -367,3 +367,29 @@ html { scroll-behavior: smooth; }
   .arm-rutas { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 10px; margin-inline: -16px; padding: 2px 16px 10px; }
   .arm-rutas button { flex: 0 0 78%; scroll-snap-align: start; }
 }
+
+/* Compartir, comparar e imprimir */
+.acciones-ruta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0 14px; }
+#cmp-msg { color: var(--panorama); font-weight: 600; font-size: .9rem; }
+.aviso-ok { margin: 10px 0; padding: 8px 12px; border-radius: 10px; background: color-mix(in srgb, var(--panorama) 18%, var(--surface)); font-weight: 600; }
+.comparar { border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; background: var(--surface); margin-bottom: 18px; }
+.comparar summary { cursor: pointer; font-weight: 700; }
+.cmp-sel { display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 12px 0; }
+.cmp-sel label { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.cmp-sel select { font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); max-width: 100%; }
+.cmp-tabla { overflow-x: auto; }
+.cmp-tabla table { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 520px; }
+.cmp-tabla th, .cmp-tabla td { text-align: left; vertical-align: top; padding: 8px 10px; border-top: 1px solid var(--line); }
+.cmp-tabla th { width: 150px; color: var(--muted); font-weight: 600; }
+.cmp-tabla td.mejor { color: var(--panorama); font-weight: 700; }
+@media print {
+  :root, :root[data-theme] { --bg: #fff !important; --surface: #fff !important; --ink: #111 !important; --muted: #444 !important; --line: #ccc !important; --accent: #2343C4 !important; --accent-soft: #eef1fb !important; }
+  html, body { background: #fff !important; color: #111 !important; }
+  .top, footer, .portada, .barra-fija, .armador, .acciones-ruta, .comparar, .aviso-ok, .mapa, .paradas, .it-ctl, .asa, main > section:not(#ruta) { display: none !important; }
+  .ruta-grid { display: block !important; }
+  .linea-wrap { overflow: visible; }
+  .linea { min-width: 0; flex-wrap: wrap; gap: 4px; }
+  .itinerario li { break-inside: avoid; }
+  .cabeza p { display: none; }
+  * { animation: none !important; box-shadow: none !important; }
+}

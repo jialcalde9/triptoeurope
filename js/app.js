@@ -137,6 +137,27 @@
   // ---------- Inicio ----------
   function inicio() {
     const main = $("main");
+    // ---------- Enlace para compartir la ruta (sin servidor: la ruta viaja en el enlace) ----------
+    const CAT = window.CATALOGO;
+    const codificar = o => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const decodificar = q => JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g, "+").replace(/_/g, "/")))));
+    let avisoImport = false;
+    (function importar() {
+      const q = new URLSearchParams(location.search).get("r");
+      if (!q) return;
+      try {
+        const s = decodificar(q), ok = id => typeof id === "string" && Object.prototype.hasOwnProperty.call(CAT.ciudades, id);
+        const paises = (Array.isArray(s.paises) ? s.paises : []).filter(p => CAT.paises.some(x => x.id === p));
+        if (!paises.length) return;
+        const noches = {};
+        Object.entries(s.noches && typeof s.noches === "object" ? s.noches : {}).forEach(([k, v]) => { if (ok(k) && Number.isFinite(+v)) noches[k] = Math.max(1, Math.min(10, Math.round(+v))); });
+        const orden = (Array.isArray(s.orden) ? s.orden : []).filter(ok);
+        localStorage.setItem("rm-ruta", JSON.stringify({ ruta: null, paises, fuera: (Array.isArray(s.fuera) ? s.fuera : []).filter(ok), noches,
+          dias: Math.max(14, Math.min(35, Math.round(+s.dias) || 21)), orden: orden.length ? orden : null }));
+        avisoImport = true;
+        history.replaceState(null, "", location.pathname + location.hash);
+      } catch (e) {}
+    })();
     main.innerHTML = `
     <section class="portada" aria-label="Portada">
       <div class="slides" aria-hidden="true">${SLIDES.map(([f], i) => `<div class="slide${i ? "" : " on"}" style="background-image:url('${IMGABS}portada/${f}.jpg')"></div>`).join("")}</div>
@@ -164,6 +185,16 @@
         <p>Elige una ruta armada, o los países y días que quieras. El sitio ordena las ciudades desde París, reparte las noches y recalcula el presupuesto. Puedes sacar ciudades o sumarles noches con − y +, y reordenar las paradas arrastrándolas en el itinerario.</p></div>
       <div class="armador" id="armador"></div>
       <p class="arm-total" id="arm-total" aria-live="polite"></p>
+      ${avisoImport ? '<p class="aviso-ok">Se cargó una ruta compartida contigo. Puedes cambiarla como quieras.</p>' : ""}
+      <div class="acciones-ruta">
+        <button type="button" class="btn ghost" id="btn-compartir">🔗 Copiar enlace de esta ruta</button>
+        <button type="button" class="btn ghost" id="btn-imprimir">🖨 Imprimir / guardar PDF</button>
+        <span id="cmp-msg" aria-live="polite"></span>
+      </div>
+      <details class="comparar" id="comparar"><summary>Comparar dos rutas</summary>
+        <div class="cmp-sel"><label>Ruta A <select id="cmp-a"></select></label><label>Ruta B <select id="cmp-b"></select></label></div>
+        <div class="cmp-tabla" id="cmp-tabla"></div>
+      </details>
       <div class="linea-wrap"><div class="linea" id="linea" aria-label="Línea de tiempo de la ruta"></div></div>
       <div class="ruta-grid">
         <div class="mapa grande" id="mapa-ruta" aria-label="Mapa de la ruta completa"></div>
@@ -239,8 +270,44 @@
         if (el) el.textContent = `~${millones(sim.estimar(armador.rutaArmada(x.id)))} por persona`;
       });
       $("#barra").innerHTML = `<span><b>${rutaActual.dias}</b> días</span><span><b>${rutaActual.paradas.length}</b> paradas</span><span><b>~${millones(sim.estimar(armador.ruta()))}</b> CLP por persona</span><a href="#armador">Ajustar</a>`;
+      comparar();
       $("#arm-total").innerHTML = `Esta ruta sale <b>~${millones(sim.estimar(armador.ruta()))} CLP por persona</b> · <a href="#presupuesto">ver el detalle</a>`;
     }
+    // Comparar dos rutas lado a lado
+    function opciones() {
+      const o = `<option value="actual">Mi ruta actual</option>` + armador.rutas.map(x => `<option value="${x.id}">${esc(x.n)}</option>`).join("");
+      ["a", "b"].forEach((l, i) => { const el = $("#cmp-" + l); if (!el.options.length) { el.innerHTML = o; el.value = i ? armador.rutas[0].id : "actual"; } });
+    }
+    function comparar() {
+      if (!sim) return;
+      opciones();
+      const get = v => v === "actual" ? armador.ruta() : armador.rutaArmada(v);
+      const A = get($("#cmp-a").value), B = get($("#cmp-b").value);
+      const cA = sim.estimar(A), cB = sim.estimar(B);
+      const nombres = r => r.paradas.filter(p => p.id !== "beaune").map(p => esc(p.ciudad.nombre)).join(", ");
+      const paises = r => r.paises.map(id => esc(nombrePais(id))).join(", ");
+      const fila = (t, a, b, mejor) => `<tr><th>${t}</th><td${mejor === "a" ? ' class="mejor"' : ""}>${a}</td><td${mejor === "b" ? ' class="mejor"' : ""}>${b}</td></tr>`;
+      $("#cmp-tabla").innerHTML = `<table><tbody>
+        ${fila("Costo por persona", "~" + millones(cA) + " CLP", "~" + millones(cB) + " CLP", cA < cB ? "a" : cB < cA ? "b" : "")}
+        ${fila("Días", A.dias, B.dias)}
+        ${fila("Países", paises(A), paises(B))}
+        ${fila("Paradas", A.paradas.length, B.paradas.length)}
+        ${fila("Trenes y vuelos", A.tramos.length + " tramos · ~" + A.trenesEur + " €", B.tramos.length + " tramos · ~" + B.trenesEur + " €", A.trenesEur < B.trenesEur ? "a" : B.trenesEur < A.trenesEur ? "b" : "")}
+        ${fila("Ciudades", nombres(A), nombres(B))}</tbody></table>`;
+    }
+    document.addEventListener("change", e => { if (e.target.id === "cmp-a" || e.target.id === "cmp-b") comparar(); });
+    document.addEventListener("click", async e => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.id === "btn-imprimir") window.print();
+      if (b.id === "btn-compartir") {
+        const url = location.origin + location.pathname + "?r=" + codificar(armador.estado());
+        let ok = false;
+        try { await navigator.clipboard.writeText(url); ok = true; } catch (err) {}
+        if (!ok) prompt("Copia este enlace:", url);
+        $("#cmp-msg").textContent = ok ? "¡Enlace copiado!" : "";
+      }
+    });
     const it = $("#itinerario");
     const ids = () => [...it.querySelectorAll("li.mov")].map(l => l.dataset.id);
     it.addEventListener("click", e => {

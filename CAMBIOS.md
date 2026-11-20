@@ -3,6 +3,10 @@
 Lo más nuevo arriba. Cada cambio publicado agrega una entrada.
 
 ## 2026-11-20
+- **Compartir la ruta**: botón "Copiar enlace de esta ruta". Quien abre el enlace ve la misma ruta (ciudades, noches, orden y días) y puede cambiarla.
+- **Imprimir / guardar PDF**: botón que deja solo el itinerario y la línea de tiempo, limpios y en blanco y negro, para mostrar o imprimir.
+- **Comparar dos rutas**: desplegable con dos selectores (mi ruta actual o cualquiera de las armadas) y una tabla con costo por persona, días, países, paradas, trenes/vuelos y ciudades; marca en verde lo más barato.
+- Versión de enlaces subida a `?v=5`.
 - **Línea de tiempo** sobre el mapa: una franja con cada parada (más ancha si hay más noches) y el medio de transporte entre ellas (🚆 ✈️ 🚗 con horas). Al tocar una parada baja a su detalle.
 - **Más pulido**: las secciones y tarjetas aparecen suavemente al bajar, y las fotos de países y paradas reaccionan al pasar el mouse.
 - **Celular**: el menú queda en una sola fila deslizable, los datos de la portada caben en una línea y las rutas armadas se deslizan de lado.

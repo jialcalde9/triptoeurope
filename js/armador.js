@@ -181,6 +181,7 @@ window.crearArmador = function (raiz, alCambiar) {
     if (v < 1) { s.fuera.push(id); delete s.noches[id]; } else s.noches[id] = Math.min(v, 10);
     s.ruta = null; guardar(); render();
   }
+  const estado = () => ({ paises: s.paises, fuera: s.fuera, noches: s.noches, dias: ruta().dias, orden: s.orden || null });
   render();
-  return { mover, noches, ruta: () => ruta(), rutaArmada: id => ruta(desdeRuta(K.rutas.find(x => x.id === id))), rutas: K.rutas, C };
+  return { estado, mover, noches, ruta: () => ruta(), rutaArmada: id => ruta(desdeRuta(K.rutas.find(x => x.id === id))), rutas: K.rutas, C };
 };
