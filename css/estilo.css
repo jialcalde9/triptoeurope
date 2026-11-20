@@ -393,3 +393,22 @@ html { scroll-behavior: smooth; }
   .cabeza p { display: none; }
   * { animation: none !important; box-shadow: none !important; }
 }
+
+/* Antes de viajar */
+.antes-fecha { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin-bottom: 18px; }
+.antes-fecha label { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.antes-fecha input { font: inherit; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.antes-fecha p { margin: 0; }
+.antes-fecha b { font-family: var(--font-display); font-size: 1.8rem; font-weight: 400; color: var(--accent); }
+.antes-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.antes-grid h3 { margin: 0 0 8px; }
+.nota-chica { color: var(--muted); font-size: .85rem; margin: 0 0 8px; }
+.check { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.check label { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); cursor: pointer; }
+.check input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--accent); }
+.check small { display: block; color: var(--muted); font-size: .82rem; margin-top: 2px; }
+.check small.vencido { color: var(--rouge); font-weight: 700; }
+.check small:not(.vencido) + small { margin-top: 2px; }
+.check li:has(input:checked) label { opacity: .55; }
+.check li:has(input:checked) b { text-decoration: line-through; }
+@media (max-width: 760px) { .antes-grid { grid-template-columns: 1fr; } }

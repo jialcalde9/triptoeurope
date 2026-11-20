@@ -221,6 +221,16 @@
       <div class="sim" id="simulador"></div>
     </section>
 
+    <section class="wrap bloque" id="antes">
+      <div class="cabeza"><p class="eyebrow">Antes de viajar</p><h2>Cuenta regresiva y reservas</h2>
+        <p>Pon la fecha de salida y el sitio calcula cuánto falta y hasta cuándo conviene hacer cada cosa. Lo que marques queda guardado en tu navegador.</p></div>
+      <div class="antes-fecha"><label>Fecha de salida <input type="date" id="a-fecha"></label><p id="a-cuenta" aria-live="polite"></p></div>
+      <div class="antes-grid">
+        <div><h3>Lista de tareas</h3><ul class="check" id="a-tareas"></ul></div>
+        <div><h3>Reservas con anticipación</h3><p class="nota-chica">Solo lugares de tu ruta. Plazos aproximados: confirma siempre en el sitio oficial.</p><ul class="check" id="a-reservas"></ul></div>
+      </div>
+    </section>
+
     <section class="wrap bloque">
       <div class="cabeza"><p class="eyebrow">Para decidir</p><h2>Lo que falta definir</h2></div>
       <div class="pendientes">${V.pendientes.map(([t, d]) => `<article><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`).join("")}</div>
@@ -259,6 +269,7 @@
           ${c.ficha ? `<a class="cta" href="${urlCiudad(p.id)}">Ver ficha completa →</a>` : ""}</div></article>`;
       }).join("");
       dibujarRuta();
+      pintarAntes();
       if (sim) sim.actualizar();
     }
     const millones = t => (t / 1e6).toFixed(1).replace(".", ",") + " M";
@@ -307,6 +318,53 @@
         if (!ok) prompt("Copia este enlace:", url);
         $("#cmp-msg").textContent = ok ? "¡Enlace copiado!" : "";
       }
+    });
+    // ---------- Antes de viajar: cuenta regresiva, tareas y reservas ----------
+    const TAREAS = [
+      ["Definir fechas y quiénes viajan", 10, "Sin esto no se puede reservar nada."],
+      ["Revisar pasaportes (vigencia y estado)", 9, "Conviene que duren varios meses después del regreso."],
+      ["Comprar pasajes Santiago ⇄ Europa", 7, "Vuelo de ida a París y vuelta desde la última ciudad."],
+      ["Reservar alojamientos", 5, "Con cancelación gratuita mientras se pueda."],
+      ["Revisar si hace falta ETIAS u otro permiso de entrada", 3, "Confirmar en el sitio oficial de la Unión Europea."],
+      ["Reservar trenes de larga distancia", 2, "Los pasajes baratos se agotan primero."],
+      ["Contratar seguro de viaje", 2, "Con cobertura médica y de equipaje."],
+      ["Licencia internacional (si arrendamos auto)", 2, "Para la parada en Mussy y Beaune."],
+      ["Avisar al banco y revisar tarjetas", 1, "Y probar un retiro o pago antes de salir."],
+      ["Comprar eSIM o chip, y copias de documentos", 0.5, "Copia digital de pasaportes y reservas."]
+    ];
+    const RESERVAS = [
+      ["milan", "La Última Cena (Milán)", "Se agota con 2 a 3 meses de anticipación", 12],
+      ["como", "La Última Cena (Milán)", "Se agota con 2 a 3 meses de anticipación", 12],
+      ["granada", "Alhambra (Granada)", "Entradas se agotan con meses de anticipación", 12],
+      ["paris", "Torre Eiffel (subida a la cima)", "Las entradas se abren con unos 2 meses de anticipación", 8],
+      ["paris", "Museo del Louvre", "Horario reservado, mejor con semanas de anticipación", 4],
+      ["roma", "Coliseo y Foro Romano", "Reservar con 1 a 2 meses", 6],
+      ["roma", "Galería Borghese", "Reserva obligatoria; se agota rápido", 6],
+      ["florencia", "Galería de los Uffizi y Galería de la Academia (David)", "Reservar con 3 a 4 semanas", 4],
+      ["barcelona", "Sagrada Familia y Parque Güell", "Reservar con 3 a 4 semanas", 4],
+      ["venecia", "Basílica de San Marcos / Palacio Ducal", "Reservar con 2 a 3 semanas", 3]
+    ];
+    const AK = "rm-antes";
+    let AN = { fecha: "", hechos: {} };
+    try { const g = JSON.parse(localStorage.getItem(AK)); if (g && typeof g === "object") AN = { fecha: typeof g.fecha === "string" ? g.fecha : "", hechos: g.hechos && typeof g.hechos === "object" ? g.hechos : {} }; } catch (e) {}
+    const guardarAN = () => { try { localStorage.setItem(AK, JSON.stringify(AN)); } catch (e) {} };
+    const fmtF = d => d.toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" });
+    function pintarAntes() {
+      const f = AN.fecha ? new Date(AN.fecha + "T12:00:00") : null, ok = f && !isNaN(f);
+      const hoy = new Date(); hoy.setHours(12, 0, 0, 0);
+      $("#a-fecha").value = AN.fecha || "";
+      $("#a-cuenta").innerHTML = ok ? (f >= hoy ? `Faltan <b>${Math.round((f - hoy) / 864e5)}</b> días para salir.` : "¡Ya salimos! Buen viaje.") : "Elige una fecha para ver los plazos.";
+      const limite = sem => { if (!ok) return ""; const d = new Date(f.getTime() - sem * 7 * 864e5); return `<small class="${d < hoy ? "vencido" : ""}">hasta ${fmtF(d)}</small>`; };
+      const item = (k, txt, nota, sem) => `<li><label><input type="checkbox" data-chk="${k}"${AN.hechos[k] ? " checked" : ""}><span><b>${esc(txt)}</b> ${limite(sem)}<small>${esc(nota)}</small></span></label></li>`;
+      $("#a-tareas").innerHTML = TAREAS.map(([n, m, nota], i) => item("t" + i, n, nota, m * 4.345)).join("");
+      const en = rutaActual ? rutaActual.ciudades : new Set();
+      const vistos = new Set();
+      const res = RESERVAS.filter(([c, n]) => en.has(c) && !vistos.has(n) && vistos.add(n));
+      $("#a-reservas").innerHTML = res.length ? res.map(([c, n, nota, sem]) => item("r" + n, n, nota, sem)).join("") : "<li class='nota-chica'>Ninguna de las ciudades de tu ruta actual requiere reserva anticipada.</li>";
+    }
+    document.addEventListener("change", e => {
+      if (e.target.id === "a-fecha") { AN.fecha = e.target.value; guardarAN(); pintarAntes(); }
+      else if (e.target.dataset && e.target.dataset.chk) { AN.hechos[e.target.dataset.chk] = e.target.checked; guardarAN(); }
     });
     const it = $("#itinerario");
     const ids = () => [...it.querySelectorAll("li.mov")].map(l => l.dataset.id);
