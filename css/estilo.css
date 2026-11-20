@@ -312,3 +312,23 @@ tfoot td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: 0;
   .mapa.grande { height: 460px; }
 }
 @media (max-width: 480px) { .lugares { grid-template-columns: 1fr; } }
+
+/* Armador: países plegables, itinerario arrastrable y barra fija */
+.arm-pais { border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; background: var(--surface); align-self: start; }
+.arm-pais summary { cursor: pointer; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 700; list-style: none; padding: 4px 0; }
+.arm-pais summary::-webkit-details-marker { display: none; }
+.arm-pais summary::after { content: "▾"; color: var(--muted); margin-left: 4px; transition: transform .2s; }
+.arm-pais[open] summary::after { transform: rotate(180deg); }
+.arm-pais summary small { margin-left: auto; color: var(--muted); font-family: var(--font-mono); font-size: .75rem; font-weight: 400; }
+.arm-pais[open] summary { border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+.itinerario li.mov { cursor: grab; transition: background .15s, opacity .15s; border-radius: 8px; }
+.itinerario li.mov:hover { background: var(--accent-soft); }
+.itinerario li.arrastrando { opacity: .4; }
+.itinerario li.sobre { box-shadow: 0 -3px 0 var(--accent); }
+.itinerario .asa { font-style: normal; color: var(--muted); margin-right: 4px; letter-spacing: -2px; }
+.it-ctl { display: flex; gap: 4px; margin-top: 6px; }
+.it-ctl button { min-width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; font-size: .8rem; }
+.it-ctl button:hover { border-color: var(--accent); color: var(--accent); }
+.barra-fija { position: sticky; bottom: 12px; z-index: 20; display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; justify-content: center; margin: 24px auto 0; width: fit-content; max-width: 100%; padding: 10px 22px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 30px rgba(0,0,0,.25); font-size: .9rem; }
+.barra-fija b { font-family: var(--font-mono); color: var(--accent); }
+.barra-fija a { color: var(--accent); font-weight: 700; text-decoration: none; }

@@ -161,7 +161,7 @@
 
     <section class="wrap bloque" id="ruta">
       <div class="cabeza"><p class="eyebrow">Arma la ruta</p><h2>¿Por dónde vamos?</h2>
-        <p>Elige una ruta armada, o los países y días que quieras. El sitio ordena las ciudades desde París, reparte las noches y recalcula el presupuesto. Puedes sacar ciudades o sumarles noches con − y +.</p></div>
+        <p>Elige una ruta armada, o los países y días que quieras. El sitio ordena las ciudades desde París, reparte las noches y recalcula el presupuesto. Puedes sacar ciudades o sumarles noches con − y +, y reordenar las paradas arrastrándolas en el itinerario.</p></div>
       <div class="armador" id="armador"></div>
       <p class="arm-total" id="arm-total" aria-live="polite"></p>
       <div class="ruta-grid">
@@ -169,6 +169,7 @@
         <ol class="itinerario" id="itinerario"></ol>
       </div>
       <div class="paradas" id="paradas"></div>
+      <div class="barra-fija" id="barra" aria-live="polite"></div>
     </section>
 
     <section class="wrap bloque">
@@ -205,9 +206,11 @@
       $("#itinerario").innerHTML = `<li class="vuelo-li"><span class="dia">Día 0</span><div><b>Vuelo Santiago → París</b><small>Noche a bordo</small></div></li>` +
         r.paradas.map((p, i) => {
           const t = r.tramos[i];
-          return `<li${p.id === "mussy" ? ' class="raiz"' : ""}><span class="dia">${p.desde === p.hasta ? p.desde : `${p.desde}–${p.hasta}`}</span>
+          const mov = p.id !== "paris" && p.id !== "beaune";
+          const ctl = mov ? `<span class="it-ctl"><button type="button" data-sube="${p.id}" aria-label="Subir ${esc(p.ciudad.nombre)}">▲</button><button type="button" data-baja="${p.id}" aria-label="Bajar ${esc(p.ciudad.nombre)}">▼</button>${p.ciudad.fija ? "" : `<button type="button" data-n="${p.id}" data-d="-1" aria-label="Una noche menos">−</button><button type="button" data-n="${p.id}" data-d="1" aria-label="Una noche más">+</button>`}</span>` : "";
+          return `<li data-id="${p.id}"${mov ? ' draggable="true"' : ""} class="${p.id === "mussy" ? "raiz " : ""}${mov ? "mov" : ""}"><span class="dia">${mov ? '<i class="asa" aria-hidden="true">⠿</i>' : ""}${p.desde === p.hasta ? p.desde : `${p.desde}–${p.hasta}`}</span>
             <div><a href="#parada-${p.id}"><b>${i + 1}. ${esc(p.ciudad.nombre)}</b></a><small>${esc(nombrePais(p.ciudad.pais))} · ${nochesTxt(p.noches)}</small>
-            ${t ? `<small class="tramo">→ ${t.tipo} a ${esc(r.paradas[i + 1].ciudad.nombre)} · ~${t.horas} h</small>` : ""}</div></li>`;
+            ${t ? `<small class="tramo">→ ${t.tipo} a ${esc(r.paradas[i + 1].ciudad.nombre)} · ~${t.horas} h</small>` : ""}${ctl}</div></li>`;
         }).join("") + `<li class="vuelo-li"><span class="dia">Día ${r.dias}</span><div><b>Vuelo ${esc(ult.nombre)} → Santiago</b></div></li>`;
       $("#paradas").innerHTML = r.paradas.filter(p => p.id !== "beaune").map(p => {
         const c = p.ciudad, cred = c.credito && !c.credito.local ? `Foto: ${esc(c.credito.autor)}, ${esc(c.credito.lic)}` : "";
@@ -228,8 +231,23 @@
         const el = document.querySelector(`[data-costo="${x.id}"]`);
         if (el) el.textContent = `~${millones(sim.estimar(armador.rutaArmada(x.id)))} por persona`;
       });
+      $("#barra").innerHTML = `<span><b>${rutaActual.dias}</b> días</span><span><b>${rutaActual.paradas.length}</b> paradas</span><span><b>~${millones(sim.estimar(armador.ruta()))}</b> CLP por persona</span><a href="#armador">Ajustar</a>`;
       $("#arm-total").innerHTML = `Esta ruta sale <b>~${millones(sim.estimar(armador.ruta()))} CLP por persona</b> · <a href="#presupuesto">ver el detalle</a>`;
     }
+    const it = $("#itinerario");
+    const ids = () => [...it.querySelectorAll("li.mov")].map(l => l.dataset.id);
+    it.addEventListener("click", e => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.dataset.n) return armador.noches(b.dataset.n, +b.dataset.d);
+      const id = b.dataset.sube || b.dataset.baja;
+      if (id) armador.mover(id, ids().indexOf(id) + (b.dataset.sube ? -1 : 1));
+    });
+    let arrastrando = null;
+    it.addEventListener("dragstart", e => { const l = e.target.closest("li.mov"); if (!l) return; arrastrando = l.dataset.id; l.classList.add("arrastrando"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", arrastrando); });
+    it.addEventListener("dragover", e => { if (!arrastrando) return; const l = e.target.closest("li.mov"); if (!l) return; e.preventDefault(); it.querySelectorAll(".sobre").forEach(x => x.classList.remove("sobre")); if (l.dataset.id !== arrastrando) l.classList.add("sobre"); });
+    it.addEventListener("drop", e => { const l = e.target.closest("li.mov"); if (!arrastrando || !l) return; e.preventDefault(); const d = ids().indexOf(l.dataset.id), id = arrastrando; arrastrando = null; armador.mover(id, d); });
+    it.addEventListener("dragend", () => { arrastrando = null; it.querySelectorAll(".arrastrando,.sobre").forEach(x => x.classList.remove("arrastrando", "sobre")); });
     const armador = window.crearArmador($("#armador"), r => { render(r); costos(); });
     sim = window.crearSimulador($("#simulador"), armador.ruta,
       t => { $("#h-costo").textContent = millones(t); costos(); });

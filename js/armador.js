@@ -32,7 +32,14 @@ window.crearArmador = function (raiz, alCambiar) {
   const largo = ids => ids.slice(1).reduce((t, id, i) => t + km(C[ids[i]].c, C[id].c), 0);
 
   // Vecino más cercano desde París y luego 2-opt para quitar cruces. Beaune va siempre después de Mussy.
-  function ordenar(ids) {
+  function ordenar(ids, manual) {
+    if (manual && manual.length) {
+      const base = [...manual.filter(id => ids.includes(id)), ...ids.filter(id => !manual.includes(id) && id !== "paris" && id !== "beaune")];
+      const o = ["paris", ...base.filter(id => id !== "paris" && id !== "beaune")];
+      const i = o.indexOf("mussy");
+      if (ids.includes("beaune")) o.splice(i >= 0 ? i + 1 : o.length, 0, "beaune");
+      return o;
+    }
     const resto = ids.filter(id => id !== "paris" && id !== "beaune");
     const orden = ["paris"];
     while (resto.length) {
@@ -81,7 +88,7 @@ window.crearArmador = function (raiz, alCambiar) {
     } else ({ n, quitadas } = repartir(enPais, st.dias - 1));
     const ids = enPais.filter(id => C[id].fija || id in n);
     let dia = 1;
-    const paradas = ordenar(ids).map(id => {
+    const paradas = ordenar(ids, st.orden).map(id => {
       const noches = n[id] || 0, p = { id, ciudad: C[id], noches, desde: dia, hasta: noches ? dia + noches - 1 : dia };
       dia += noches;
       return p;
@@ -99,6 +106,8 @@ window.crearArmador = function (raiz, alCambiar) {
   }
 
   // ---------- Interfaz ----------
+  const abiertos = new Map();
+  raiz.addEventListener("toggle", e => { if (e.target.dataset.det) abiertos.set(e.target.dataset.det, e.target.open); }, true);
   function render() {
     const r = ruta();
     const conAjuste = Object.keys(s.noches).length > 0;
@@ -114,11 +123,13 @@ window.crearArmador = function (raiz, alCambiar) {
       ${r.quitadas.length ? `<p class="aviso">No alcanzan los días para ${r.quitadas.map(id => esc(C[id].nombre)).join(", ")}. Sube los días o elige menos países.</p>` : ""}
       <div class="arm-ciudades">${s.paises.map(p => {
         const ids = Object.keys(C).filter(id => C[id].pais === p && !C[id].fija);
-        return `<div><p class="eyebrow">${esc(nombrePais(p))}</p>${ids.map(id => {
+        const dentro = ids.filter(id => r.ciudades.has(id)).length;
+        const abierto = abiertos.has(p) ? abiertos.get(p) : dentro > 0;
+        return `<details class="arm-pais" data-det="${p}"${abierto ? " open" : ""}><summary><span>${esc(nombrePais(p))}</span><small>${dentro} de ${ids.length}</small></summary>${ids.map(id => {
           const en = r.ciudades.has(id), par = r.paradas.find(x => x.id === id);
           return `<div class="ciu${en ? " en" : ""}"><button type="button" class="ciu-t" data-ciudad="${id}" aria-pressed="${en}">${esc(C[id].nombre)}</button>
             ${en ? `<span class="noches"><button type="button" data-mas="${id}" data-d="-1" aria-label="Una noche menos en ${esc(C[id].nombre)}">−</button><b>${par.noches}</b><button type="button" data-mas="${id}" data-d="1" aria-label="Una noche más en ${esc(C[id].nombre)}">+</button></span>` : ""}</div>`;
-        }).join("")}</div>`;
+        }).join("")}</details>`;
       }).join("")}</div>`;
     alCambiar(r);
   }
@@ -132,7 +143,7 @@ window.crearArmador = function (raiz, alCambiar) {
     else if (b.dataset.pais) {
       const p = b.dataset.pais;
       s.paises = s.paises.includes(p) ? s.paises.filter(x => x !== p) : [...s.paises, p];
-      s.noches = {}; s.ruta = null;
+      s.noches = {}; s.ruta = null; s.orden = null;
     } else if (b.dataset.ciudad) {
       const id = b.dataset.ciudad;
       if (s.fuera.includes(id)) s.fuera = s.fuera.filter(x => x !== id); else { s.fuera.push(id); delete s.noches[id]; }
@@ -151,10 +162,25 @@ window.crearArmador = function (raiz, alCambiar) {
   });
   raiz.addEventListener("change", e => {
     if (e.target.id !== "arm-dias") return;
-    s.dias = +e.target.value; s.noches = {}; s.ruta = null;
+    s.dias = +e.target.value; s.noches = {}; s.ruta = null; s.orden = null;
     guardar(); render();
   });
 
+  // Acciones desde el itinerario: mover una parada a otra posición y sumar/restar noches
+  function congelar() { const r = ruta(); if (!Object.keys(s.noches).length) r.paradas.forEach(p => { if (!p.ciudad.fija) s.noches[p.id] = p.noches; }); }
+  function mover(id, destino) {
+    const o = ruta().paradas.map(p => p.id).filter(x => x !== "paris" && x !== "beaune");
+    const i = o.indexOf(id);
+    if (i < 0) return;
+    o.splice(i, 1); o.splice(Math.max(0, Math.min(destino, o.length)), 0, id);
+    s.orden = o; s.ruta = null; guardar(); render();
+  }
+  function noches(id, d) {
+    congelar();
+    const v = (s.noches[id] || 0) + d;
+    if (v < 1) { s.fuera.push(id); delete s.noches[id]; } else s.noches[id] = Math.min(v, 10);
+    s.ruta = null; guardar(); render();
+  }
   render();
-  return { ruta: () => ruta(), rutaArmada: id => ruta(desdeRuta(K.rutas.find(x => x.id === id))), rutas: K.rutas, C };
+  return { mover, noches, ruta: () => ruta(), rutaArmada: id => ruta(desdeRuta(K.rutas.find(x => x.id === id))), rutas: K.rutas, C };
 };

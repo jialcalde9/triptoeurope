@@ -3,6 +3,10 @@
 Lo más nuevo arriba. Cada cambio publicado agrega una entrada.
 
 ## 2026-11-20
+- **Ruta arrastrable**: en el itinerario se pueden mover las paradas arrastrándolas (o con las flechas ▲ ▼, que sirven en el celular) y sumar/restar noches con − y +. París queda siempre primero y Beaune siempre después de Mussy. El tren/vuelo entre ciudades y el presupuesto se recalculan solos.
+- **Países plegables** en el armador: cada país es una tarjeta que se abre y cierra y muestra cuántas de sus ciudades van en la ruta.
+- **Barra fija** al pie mientras ves la ruta: días, paradas y costo por persona siempre a la vista.
+- **Versión en los enlaces** (`?v=2`) de todos los HTML: los cambios se ven sin esperar el caché del navegador. Al cambiar JS/CSS, subir el número.
 - **Git conectado**: la carpeta `sitio-viaje` es ahora el repo y se publica con commit + push (ya no se suben archivos a mano por la web).
 - Se agregó este registro de cambios.
 
