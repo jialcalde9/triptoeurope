@@ -17,7 +17,7 @@ window.crearArmador = function (raiz, alCambiar) {
 
   function desdeRuta(r) {
     const fuera = Object.keys(C).filter(id => r.paises.includes(C[id].pais) && !C[id].fija && !(id in r.noches));
-    return { ruta: r.id, paises: [...r.paises], fuera, noches: { ...r.noches }, dias: Object.values(r.noches).reduce((a, b) => a + b, 0) + 1 };
+    return { ruta: r.id, entrada: "paris", salida: "ultima", paises: [...r.paises], fuera, noches: { ...r.noches }, dias: Object.values(r.noches).reduce((a, b) => a + b, 0) + 1 };
   }
   let s;
   try { s = JSON.parse(localStorage.getItem(KEY)) || desdeRuta(K.rutas[0]); } catch (e) { s = desdeRuta(K.rutas[0]); }
@@ -31,41 +31,47 @@ window.crearArmador = function (raiz, alCambiar) {
   };
   const largo = ids => ids.slice(1).reduce((t, id, i) => t + km(C[ids[i]].c, C[id].c), 0);
 
-  // Vecino más cercano desde París y luego 2-opt para quitar cruces. Beaune va siempre después de Mussy.
-  function ordenar(ids, manual) {
-    if (manual && manual.length) {
-      const base = [...manual.filter(id => ids.includes(id)), ...ids.filter(id => !manual.includes(id) && id !== "paris" && id !== "beaune")];
-      const o = ["paris", ...base.filter(id => id !== "paris" && id !== "beaune")];
-      const i = o.indexOf("mussy");
-      if (ids.includes("beaune")) o.splice(i >= 0 ? i + 1 : o.length, 0, "beaune");
-      return o;
-    }
-    const resto = ids.filter(id => id !== "paris" && id !== "beaune");
-    const orden = ["paris"];
-    while (resto.length) {
-      const ult = C[orden[orden.length - 1]].c;
-      resto.sort((a, b) => km(ult, C[a].c) - km(ult, C[b].c));
-      orden.push(resto.shift());
-    }
-    for (let mejora = true; mejora;) {
-      mejora = false;
-      for (let i = 1; i < orden.length - 1; i++) for (let j = i + 1; j < orden.length; j++) {
-        const prueba = [...orden.slice(0, i), ...orden.slice(i, j + 1).reverse(), ...orden.slice(j + 1)];
-        if (largo(prueba) < largo(orden) - 1) { orden.splice(0, orden.length, ...prueba); mejora = true; }
+  // Vecino más cercano desde la ciudad de llegada y luego 2-opt para quitar cruces. Beaune va siempre después de Mussy.
+  // ent = ciudad de llegada; sal = "ultima" (vuelo desde la última parada) o una ciudad (Madrid/París) desde donde se vuelve.
+  // Si se vuelve desde la misma ciudad de llegada, el recorrido se trata como un circuito cerrado.
+  function ordenar(ids, manual, ent, sal) {
+    const finFijo = sal !== "ultima" && sal !== ent && ids.includes(sal) ? sal : null;
+    const cerrado = sal === ent;
+    const mid = ids.filter(id => id !== ent && id !== finFijo && id !== "beaune");
+    let medio;
+    if (manual && manual.length) medio = [...manual.filter(id => mid.includes(id)), ...mid.filter(id => !manual.includes(id))];
+    else {
+      const resto = [...mid], orden = [ent];
+      while (resto.length) {
+        const ult = C[orden[orden.length - 1]].c;
+        resto.sort((a, b) => km(ult, C[a].c) - km(ult, C[b].c));
+        orden.push(resto.shift());
       }
+      if (finFijo) orden.push(finFijo);
+      const L = o => largo(o) + (cerrado && o.length > 1 ? km(C[o[o.length - 1]].c, C[o[0]].c) : 0);
+      const tope = finFijo ? orden.length - 1 : orden.length;
+      for (let mejora = true; mejora;) {
+        mejora = false;
+        for (let i = 1; i < tope - 1; i++) for (let j = i + 1; j < tope; j++) {
+          const prueba = [...orden.slice(0, i), ...orden.slice(i, j + 1).reverse(), ...orden.slice(j + 1)];
+          if (L(prueba) < L(orden) - 1) { orden.splice(0, orden.length, ...prueba); mejora = true; }
+        }
+      }
+      medio = orden.slice(1, finFijo ? -1 : undefined);
     }
-    const im = orden.indexOf("mussy");
-    if (im >= 0 && ids.includes("beaune")) orden.splice(im + 1, 0, "beaune");
-    return orden;
+    const o = [ent, ...medio, ...(finFijo ? [finFijo] : [])];
+    const im = o.indexOf("mussy");
+    if (im >= 0 && ids.includes("beaune")) o.splice(im + 1, 0, "beaune");
+    return o;
   }
 
   // Reparte noches: todos parten en su mínimo; las que sobran van primero a las imperdibles.
-  function repartir(ids, total) {
+  function repartir(ids, total, prot = ["paris"]) {
     const n = {}, quitadas = [];
     let lista = ids.filter(id => !C[id].fija);
     const minimo = () => lista.reduce((t, id) => t + C[id].min, 0);
     while (minimo() > total && lista.length > 1) {
-      const peor = lista.filter(id => id !== "paris").sort((a, b) => C[b].prio - C[a].prio || C[a].max - C[b].max)[0];
+      const peor = lista.filter(id => !prot.includes(id)).sort((a, b) => C[b].prio - C[a].prio || C[a].max - C[b].max)[0];
       lista = lista.filter(id => id !== peor); quitadas.push(peor);
     }
     lista.forEach(id => (n[id] = C[id].min));
@@ -80,29 +86,37 @@ window.crearArmador = function (raiz, alCambiar) {
 
   // st = estado a calcular (por defecto el actual; también sirve para estimar una ruta armada sin elegirla)
   function ruta(st = s) {
-    const enPais = Object.keys(C).filter(id => st.paises.includes(C[id].pais) && !st.fuera.includes(id));
+    const ent = st.entrada || "paris", sal = st.salida || "ultima";
+    const forzadas = [ent, sal !== "ultima" ? sal : null].filter(Boolean);
+    const enPais = Object.keys(C).filter(id => forzadas.includes(id) || (st.paises.includes(C[id].pais) && !st.fuera.includes(id)));
     let n, quitadas = [];
     if (Object.keys(st.noches).length) {
       n = {};
       enPais.filter(id => !C[id].fija).forEach(id => (n[id] = st.noches[id] ?? Math.max(1, C[id].min)));
-    } else ({ n, quitadas } = repartir(enPais, st.dias - 1));
+    } else ({ n, quitadas } = repartir(enPais, st.dias - 1, forzadas));
     const ids = enPais.filter(id => C[id].fija || id in n);
     let dia = 1;
-    const paradas = ordenar(ids, st.orden).map(id => {
+    const paradas = ordenar(ids, st.orden, ent, sal).map(id => {
       const noches = n[id] || 0, p = { id, ciudad: C[id], noches, desde: dia, hasta: noches ? dia + noches - 1 : dia };
       dia += noches;
       return p;
     });
-    const tramos = paradas.slice(1).map((p, i) => {
-      const a = paradas[i].ciudad, d = Math.round(km(a.c, p.ciudad.c) * 1.25);
-      const auto = [a.id, p.id].includes("beaune") || (a.id === "mussy");
+    const unTramo = (a, b) => {
+      const d = Math.round(km(a.c, b.c) * 1.25);
+      const auto = [a.id, b.id].includes("beaune") || a.id === "mussy";
       const tipo = auto ? "Auto" : d > 850 ? "Vuelo" : "Tren";
-      return { de: a.id, a: p.id, km: d, tipo, horas: tipo === "Vuelo" ? 2 : Math.round((d / 140 + 0.3) * 2) / 2,
+      return { de: a.id, a: b.id, km: d, tipo, horas: tipo === "Vuelo" ? 2 : Math.round((d / 140 + 0.3) * 2) / 2,
         eur: tipo === "Vuelo" ? 85 : tipo === "Auto" ? 0 : Math.round(12 + d * 0.12) };
-    });
-    return { paradas, tramos, quitadas, dias: dia, noches: dia - 1, modo: 0,
+    };
+    const tramos = paradas.slice(1).map((p, i) => unTramo(paradas[i].ciudad, p.ciudad));
+    const ult = paradas[paradas.length - 1].ciudad;
+    const finFijo = sal !== "ultima" && sal !== ent && ids.includes(sal) ? sal : null;
+    // Si se vuelve desde la ciudad de llegada, hay un último tramo para regresar a ella antes del vuelo
+    const regreso = sal === ent && paradas.length > 1 ? unTramo(ult, C[ent]) : null;
+    return { paradas, tramos, quitadas, dias: dia, noches: dia - 1, modo: 0, entrada: ent, finFijo, forzadas, regreso,
+      salidaId: finFijo || (sal === ent ? ent : ult.id),
       ciudades: new Set(paradas.map(p => p.id)), paises: [...new Set(paradas.map(p => p.ciudad.pais))],
-      trenesEur: tramos.reduce((t, x) => t + x.eur, 0) };
+      trenesEur: tramos.reduce((t, x) => t + x.eur, 0) + (regreso ? regreso.eur : 0) };
   }
 
   // ---------- Interfaz ----------
@@ -120,6 +134,11 @@ window.crearArmador = function (raiz, alCambiar) {
         <label class="rango"><span>Días de viaje <output>${r.dias}</output></span>
           <input type="range" id="arm-dias" min="14" max="35" step="1" value="${conAjuste ? r.dias : s.dias}"></label>
       </div>
+      <div class="arm-vuelos">
+        <label>Llegamos a <select id="arm-ent"><option value="paris"${(s.entrada || "paris") === "paris" ? " selected" : ""}>París</option><option value="madrid"${s.entrada === "madrid" ? " selected" : ""}>Madrid</option></select></label>
+        <label>Volvemos desde <select id="arm-sal"><option value="ultima"${(s.salida || "ultima") === "ultima" ? " selected" : ""}>La última ciudad</option><option value="madrid"${s.salida === "madrid" ? " selected" : ""}>Madrid</option><option value="paris"${s.salida === "paris" ? " selected" : ""}>París</option></select></label>
+        <small>Desde Santiago, Madrid suele salir más barato que París: conviene comparar pasajes en Google Flights con las fechas tentativas.</small>
+      </div>
       ${r.quitadas.length ? `<p class="aviso">No alcanzan los días para ${r.quitadas.map(id => esc(C[id].nombre)).join(", ")}. Sube los días o elige menos países.</p>` : ""}
       <div class="arm-ciudades">${s.paises.map(p => {
         const ids = Object.keys(C).filter(id => C[id].pais === p && !C[id].fija);
@@ -127,7 +146,7 @@ window.crearArmador = function (raiz, alCambiar) {
         const abierto = abiertos.has(p) ? abiertos.get(p) : dentro > 0;
         return `<details class="arm-pais" data-det="${p}"${abierto ? " open" : ""}><summary><span>${esc(nombrePais(p))}</span><small>${dentro} de ${ids.length}</small></summary>${ids.map(id => {
           const en = r.ciudades.has(id), par = r.paradas.find(x => x.id === id);
-          return `<div class="ciu${en ? " en" : ""}"><button type="button" class="ciu-t" data-ciudad="${id}" aria-pressed="${en}">${esc(C[id].nombre)}</button>
+          return `<div class="ciu${en ? " en" : ""}"><button type="button" class="ciu-t" data-ciudad="${id}" aria-pressed="${en}"${r.forzadas.includes(id) ? " disabled" : ""}>${esc(C[id].nombre)}</button>
             ${en ? `<span class="noches"><button type="button" data-mas="${id}" data-d="-1" aria-label="Una noche menos en ${esc(C[id].nombre)}">−</button><b>${par.noches}</b><button type="button" data-mas="${id}" data-d="1" aria-label="Una noche más en ${esc(C[id].nombre)}">+</button></span>` : ""}</div>`;
         }).join("")}</details>`;
       }).join("")}</div>`;
@@ -161,6 +180,10 @@ window.crearArmador = function (raiz, alCambiar) {
     if (e.target.id === "arm-dias") e.target.closest("label").querySelector("output").textContent = e.target.value;
   });
   raiz.addEventListener("change", e => {
+    if (e.target.id === "arm-ent" || e.target.id === "arm-sal") {
+      if (e.target.id === "arm-ent") s.entrada = e.target.value; else s.salida = e.target.value;
+      s.noches = {}; s.ruta = null; s.orden = null; guardar(); render(); return;
+    }
     if (e.target.id !== "arm-dias") return;
     s.dias = +e.target.value; s.noches = {}; s.ruta = null; s.orden = null;
     guardar(); render();
@@ -169,7 +192,7 @@ window.crearArmador = function (raiz, alCambiar) {
   // Acciones desde el itinerario: mover una parada a otra posición y sumar/restar noches
   function congelar() { const r = ruta(); if (!Object.keys(s.noches).length) r.paradas.forEach(p => { if (!p.ciudad.fija) s.noches[p.id] = p.noches; }); }
   function mover(id, destino) {
-    const o = ruta().paradas.map(p => p.id).filter(x => x !== "paris" && x !== "beaune");
+    const r0 = ruta(), o = r0.paradas.map(p => p.id).filter(x => x !== r0.entrada && x !== r0.finFijo && x !== "beaune");
     const i = o.indexOf(id);
     if (i < 0) return;
     o.splice(i, 1); o.splice(Math.max(0, Math.min(destino, o.length)), 0, id);
@@ -181,7 +204,7 @@ window.crearArmador = function (raiz, alCambiar) {
     if (v < 1) { s.fuera.push(id); delete s.noches[id]; } else s.noches[id] = Math.min(v, 10);
     s.ruta = null; guardar(); render();
   }
-  const estado = () => ({ paises: s.paises, fuera: s.fuera, noches: s.noches, dias: ruta().dias, orden: s.orden || null });
+  const estado = () => ({ paises: s.paises, fuera: s.fuera, noches: s.noches, dias: ruta().dias, orden: s.orden || null, entrada: s.entrada || "paris", salida: s.salida || "ultima" });
   render();
   return { estado, mover, noches, ruta: () => ruta(), rutaArmada: id => ruta(desdeRuta(K.rutas.find(x => x.id === id))), rutas: K.rutas, C };
 };

@@ -443,3 +443,9 @@ html { scroll-behavior: smooth; }
 .ranking p { margin: 0; font-size: .92rem; }
 @media print { .ranking { display: none !important; } }
 @media (max-width: 600px) { .noches button { width: 34px; height: 34px; font-size: 1.1rem; } .it-ctl button { min-width: 34px; height: 34px; } .voto button { width: 40px; height: 36px; } }
+
+.arm-vuelos { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 4px 0 14px; }
+.arm-vuelos label { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.arm-vuelos select { font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.arm-vuelos small { color: var(--muted); flex-basis: 100%; }
+.ciu-t:disabled { cursor: default; opacity: .9; }

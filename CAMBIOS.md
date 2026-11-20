@@ -3,6 +3,7 @@
 Lo más nuevo arriba. Cada cambio publicado agrega una entrada.
 
 ## 2026-11-20
+- **Llegada y salida por Madrid o París**: nuevo selector en el armador ("Llegamos a" y "Volvemos desde"). Se puede entrar por Madrid, y volver desde Madrid, París o la última ciudad. La ruta se ordena desde la ciudad de llegada; si entran y salen por la misma, arma un circuito y agrega el tramo de regreso (con su costo) antes del vuelo a Santiago. El itinerario muestra "Vuelo Santiago → Madrid" y "Vuelo Madrid → Santiago". Se avisa que Madrid suele salir más barato desde Santiago; falta confirmar precios en Google Flights. El presupuesto sigue usando el pasaje que se ponga a mano en el simulador. Versión de enlaces `?v=11`.
 - **Fotos nuevas**: Mirador de San Nicolás (Granada, con la iglesia de San Nicolás) y Niederdorf (Zúrich). Solo falta Weinmarkt (Lucerna): no hay foto libre en Wikipedia.
 - **Celular**: revisado todo en pantalla de 375 px, sin desbordes; los botones − y + y los de voto se agrandan para el dedo. Versión de enlaces `?v=10`.
 - **Datos corregidos** tras una revisión por internet (Francia, Italia, España): Louvre sube de 22 a 32 € para chilenos; Cinque Terre Card pasa a ~30 € y se avisa que varía entre 22 y 35 € según el día; el tip de papeles dice que el ETIAS aún no está en vigor (y que rige el registro EES en la frontera); el aeropuerto de Sevilla no tiene tren, es bus. Versión de enlaces `?v=9`.

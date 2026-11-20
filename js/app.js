@@ -159,7 +159,8 @@
         Object.entries(s.noches && typeof s.noches === "object" ? s.noches : {}).forEach(([k, v]) => { if (ok(k) && Number.isFinite(+v)) noches[k] = Math.max(1, Math.min(10, Math.round(+v))); });
         const orden = (Array.isArray(s.orden) ? s.orden : []).filter(ok);
         localStorage.setItem("rm-ruta", JSON.stringify({ ruta: null, paises, fuera: (Array.isArray(s.fuera) ? s.fuera : []).filter(ok), noches,
-          dias: Math.max(14, Math.min(35, Math.round(+s.dias) || 21)), orden: orden.length ? orden : null }));
+          dias: Math.max(14, Math.min(35, Math.round(+s.dias) || 21)), orden: orden.length ? orden : null,
+          entrada: ["paris", "madrid"].includes(s.entrada) ? s.entrada : "paris", salida: ["ultima", "paris", "madrid"].includes(s.salida) ? s.salida : "ultima" }));
         avisoImport = true;
         const nom = limpiar(d.n);
         if (nom && nom !== VT.yo && d.v && typeof d.v === "object") {
@@ -194,7 +195,7 @@
 
     <section class="wrap bloque" id="ruta">
       <div class="cabeza"><p class="eyebrow">Arma la ruta</p><h2>¿Por dónde vamos?</h2>
-        <p>Elige una ruta armada, o los países y días que quieras. El sitio ordena las ciudades desde París, reparte las noches y recalcula el presupuesto. Puedes sacar ciudades o sumarles noches con − y +, y reordenar las paradas arrastrándolas en el itinerario.</p></div>
+        <p>Elige una ruta armada, o los países y días que quieras. El sitio ordena las ciudades desde la ciudad de llegada (París o Madrid), reparte las noches y recalcula el presupuesto. Puedes sacar ciudades o sumarles noches con − y +, y reordenar las paradas arrastrándolas en el itinerario.</p></div>
       <div class="armador" id="armador"></div>
       <p class="arm-total" id="arm-total" aria-live="polite"></p>
       ${avisoImport ? '<p class="aviso-ok">Se cargó una ruta compartida contigo. Puedes cambiarla como quieras.</p>' : ""}
@@ -264,15 +265,15 @@
         return `<a class="lt-par${p.id === "mussy" ? " raiz" : ""}" href="#parada-${p.id === "beaune" ? "mussy" : p.id}" style="flex-grow:${Math.max(p.noches, 0.7)}" title="${esc(p.ciudad.nombre)} · ${nochesTxt(p.noches)}"><b>${esc(p.ciudad.nombre)}</b><small>${p.noches ? p.noches + "n" : "paso"}</small></a>` +
           (tr ? `<span class="lt-tr" title="${tr.tipo} · ~${tr.horas} h">${ICO[tr.tipo]}<small>${tr.horas}h</small></span>` : "");
       }).join("");
-      $("#itinerario").innerHTML = `<li class="vuelo-li"><span class="dia">Día 0</span><div><b>Vuelo Santiago → París</b><small>Noche a bordo</small></div></li>` +
+      $("#itinerario").innerHTML = `<li class="vuelo-li"><span class="dia">Día 0</span><div><b>Vuelo Santiago → ${esc(r.paradas[0].ciudad.nombre)}</b><small>Noche a bordo</small></div></li>` +
         r.paradas.map((p, i) => {
-          const t = r.tramos[i];
-          const mov = p.id !== "paris" && p.id !== "beaune";
+          const t = r.tramos[i] || (i === r.paradas.length - 1 ? r.regreso : null);
+          const mov = p.id !== r.entrada && p.id !== r.finFijo && p.id !== "beaune";
           const ctl = mov ? `<span class="it-ctl"><button type="button" data-sube="${p.id}" aria-label="Subir ${esc(p.ciudad.nombre)}">▲</button><button type="button" data-baja="${p.id}" aria-label="Bajar ${esc(p.ciudad.nombre)}">▼</button>${p.ciudad.fija ? "" : `<button type="button" data-n="${p.id}" data-d="-1" aria-label="Una noche menos">−</button><button type="button" data-n="${p.id}" data-d="1" aria-label="Una noche más">+</button>`}</span>` : "";
           return `<li data-id="${p.id}"${mov ? ' draggable="true"' : ""} class="${p.id === "mussy" ? "raiz " : ""}${mov ? "mov" : ""}"><span class="dia">${mov ? '<i class="asa" aria-hidden="true">⠿</i>' : ""}${p.desde === p.hasta ? p.desde : `${p.desde}–${p.hasta}`}</span>
             <div><a href="#parada-${p.id}"><b>${i + 1}. ${esc(p.ciudad.nombre)}</b></a><small>${esc(nombrePais(p.ciudad.pais))} · ${nochesTxt(p.noches)}</small>
-            ${t ? `<small class="tramo">→ ${t.tipo} a ${esc(r.paradas[i + 1].ciudad.nombre)} · ~${t.horas} h</small>` : ""}${ctl}</div></li>`;
-        }).join("") + `<li class="vuelo-li"><span class="dia">Día ${r.dias}</span><div><b>Vuelo ${esc(ult.nombre)} → Santiago</b></div></li>`;
+            ${t ? `<small class="tramo">→ ${t.tipo} a ${esc((t === r.regreso ? r.paradas[0] : r.paradas[i + 1]).ciudad.nombre)}${t === r.regreso ? " (para volver a Santiago)" : ""} · ~${t.horas} h</small>` : ""}${ctl}</div></li>`;
+        }).join("") + `<li class="vuelo-li"><span class="dia">Día ${r.dias}</span><div><b>Vuelo ${esc(ciudad(r.salidaId).nombre)} → Santiago</b></div></li>`;
       $("#paradas").innerHTML = r.paradas.filter(p => p.id !== "beaune").map(p => {
         const c = p.ciudad, cred = c.credito && !c.credito.local ? `Foto: ${esc(c.credito.autor)}, ${esc(c.credito.lic)}` : "";
         return `<article class="parada${p.id === "mussy" ? " raiz" : ""}" id="parada-${p.id}">
@@ -338,7 +339,7 @@
     const TAREAS = [
       ["Definir fechas y quiénes viajan", 10, "Sin esto no se puede reservar nada."],
       ["Revisar pasaportes (vigencia y estado)", 9, "Conviene que duren varios meses después del regreso."],
-      ["Comprar pasajes Santiago ⇄ Europa", 7, "Vuelo de ida a París y vuelta desde la última ciudad."],
+      ["Comprar pasajes Santiago ⇄ Europa", 7, "Ida y vuelta según la ciudad de llegada y salida que elijan (Madrid suele salir más barato que París)."],
       ["Reservar alojamientos", 5, "Con cancelación gratuita mientras se pueda."],
       ["Revisar si hace falta ETIAS u otro permiso de entrada", 3, "Confirmar en el sitio oficial de la Unión Europea."],
       ["Reservar trenes de larga distancia", 2, "Los pasajes baratos se agotan primero."],
