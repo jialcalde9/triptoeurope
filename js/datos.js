@@ -144,7 +144,7 @@ window.VIAJE = {
       intro: "Cinco pueblos de colores colgados sobre el mar, unidos por senderos y tren.",
       hacer: ["Sendero Vernazza → Monterosso", "Baño en el mar en Monterosso", "Atardecer en Manarola"],
       comer: ["Focaccia y pesto, que se inventaron aquí", "Cono de pescado frito"],
-      tips: ["La Cinque Terre Card incluye trenes entre pueblos y senderos."],
+      tips: ["La Cinque Terre Card incluye trenes entre pueblos y senderos. Su precio varía según el día (en 2026 fue de 22 a 35 €); confirmar al viajar."],
       sale: "Tren La Spezia → Florencia · ~2 h",
       lugares: [
         { n: "Vernazza", c: [44.1350, 9.6847], t: "ver" },
@@ -337,7 +337,7 @@ window.VIAJE = {
       intro: "Ciudad ordenada a orillas del lago, con aeropuerto a 10 minutos en tren.",
       hacer: ["Casco antiguo y el Niederdorf", "Grossmünster y los vitrales de Chagall en el Fraumünster", "Mirador del Lindenhof", "Paseo por el lago", "Uetliberg, la montaña de la ciudad"],
       comer: ["Zürcher Geschnetzeltes con rösti", "Chocolates y Luxemburgerli de Sprüngli"],
-      tips: ["El aeropuerto está a ~10 min en tren: buena puerta de entrada o salida."],
+      tips: ["El aeropuerto no tiene tren: hay bus directo al centro."],
       sale: "Tren Zúrich → Lucerna · ~45 min (o → Múnich ~3 h 30)",
       lugares: [
         { n: "Grossmünster", c: [47.3700, 8.5440], t: "ver" },
@@ -564,7 +564,7 @@ window.VIAJE = {
     seguroDia: 2.7,
     // rec: recomendada en perfil equilibrado · basica: incluida en perfil mochilero
     entradas: [
-      { id: "louvre", n: "Museo del Louvre", ciudad: "paris", eur: 22, rec: true, basica: true },
+      { id: "louvre", n: "Museo del Louvre", ciudad: "paris", eur: 32, rec: true, basica: true },
       { id: "orsay", n: "Museo de Orsay", ciudad: "paris", eur: 16 },
       { id: "eiffel", n: "Torre Eiffel, cima en ascensor", ciudad: "paris", eur: 36, rec: true },
       { id: "versalles", n: "Versalles, pasaporte", ciudad: "paris", eur: 32, rec: true },
@@ -575,7 +575,7 @@ window.VIAJE = {
       { id: "papas", n: "Palacio de los Papas", ciudad: "avignon", eur: 15, rec: true },
       { id: "pontdugard", n: "Pont du Gard", ciudad: "avignon", eur: 10 },
       { id: "casino", n: "Casino de Montecarlo", ciudad: "niza", eur: 18 },
-      { id: "cinqueterre", n: "Cinque Terre Card con trenes (1 día)", ciudad: "cinque", eur: 33, rec: true, basica: true },
+      { id: "cinqueterre", n: "Cinque Terre Card con trenes (1 día, entre 22 y 35 € según el día)", ciudad: "cinque", eur: 30, rec: true, basica: true },
       { id: "cupula", n: "Cúpula del Duomo", ciudad: "florencia", eur: 30, rec: true },
       { id: "uffizi", n: "Galería Uffizi", ciudad: "florencia", eur: 25 },
       { id: "coliseo", n: "Coliseo, Foro y Palatino", ciudad: "roma", eur: 18, rec: true, basica: true },
@@ -597,7 +597,7 @@ window.VIAJE = {
     ["Fechas", "¿Cuándo vamos? Mayo–junio o septiembre tienen mejor clima; enero–febrero calza con vacaciones."],
     ["Duración", "¿3 o 4 semanas? 4 semanas suma Annecy y San Sebastián, pero queda justo con el presupuesto."],
     ["Viajeros", "Confirmar cuántos hermanos van y días libres en común."],
-    ["Papeles", "Pasaporte vigente y ETIAS, la autorización electrónica de la UE."],
+    ["Papeles", "Pasaporte vigente (conviene que dure al menos 3 meses después de salir de Europa). El ETIAS aún no está en vigor y no tiene fecha; confirmar en travel-europe.europa.eu antes de viajar. Desde 2026 rige además el registro de entrada EES en la frontera."],
     ["Pasajes", "Alertas de precio para llegar a ~700 mil, comprando 5–6 meses antes."],
     ["Mussy", "Preguntarle al abuelo qué casa o lugar quiere que veamos en las horas que estemos ahí."]
   ],
