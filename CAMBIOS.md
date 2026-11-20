@@ -3,6 +3,8 @@
 Lo más nuevo arriba. Cada cambio publicado agrega una entrada.
 
 ## 2026-11-20
+- **Fotos nuevas**: Mirador de San Nicolás (Granada, con la iglesia de San Nicolás) y Niederdorf (Zúrich). Solo falta Weinmarkt (Lucerna): no hay foto libre en Wikipedia.
+- **Celular**: revisado todo en pantalla de 375 px, sin desbordes; los botones − y + y los de voto se agrandan para el dedo. Versión de enlaces `?v=10`.
 - **Datos corregidos** tras una revisión por internet (Francia, Italia, España): Louvre sube de 22 a 32 € para chilenos; Cinque Terre Card pasa a ~30 € y se avisa que varía entre 22 y 35 € según el día; el tip de papeles dice que el ETIAS aún no está en vigor (y que rige el registro EES en la frontera); el aeropuerto de Sevilla no tiene tren, es bus. Versión de enlaces `?v=9`.
 - **Ranking de votos**: en el panel de votos aparece "Ciudades más votadas" (de más a menos, con el saldo 👍 menos 👎), las que tienen todos a favor, las que hay que conversar (con votos en contra) y las que aún no tienen votos. Cada ciudad lleva a su detalle. Versión de enlaces `?v=8`.
 - **Votación entre hermanos**: cada uno escribe su nombre y vota 👍 o 👎 en cada ciudad de la ruta. El botón "Copiar enlace de esta ruta" ahora lleva la ruta y los votos de quien lo manda; al abrirlo, los demás los ven sumados a los suyos (con los nombres) y pueden quitar los de alguien. No hay servidor: los votos viajan en el enlace y se guardan en cada navegador.

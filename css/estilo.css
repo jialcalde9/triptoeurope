@@ -442,3 +442,4 @@ html { scroll-behavior: smooth; }
 .ranking li small { color: var(--muted); }
 .ranking p { margin: 0; font-size: .92rem; }
 @media print { .ranking { display: none !important; } }
+@media (max-width: 600px) { .noches button { width: 34px; height: 34px; font-size: 1.1rem; } .it-ctl button { min-width: 34px; height: 34px; } .voto button { width: 40px; height: 36px; } }

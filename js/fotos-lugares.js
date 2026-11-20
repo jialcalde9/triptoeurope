@@ -456,6 +456,12 @@ window.FOTOS = {
   "lic": "CC0",
   "url": "https://commons.wikimedia.org/wiki/File:Dawn_Charles_V_Palace_Alhambra_Granada_Andalusia_Spain.jpg"
  },
+ "Mirador de San Nicolás": {
+  "f": "lugares/mirador-de-san-nicolas.jpg",
+  "autor": "Mihael Grmek",
+  "lic": "CC BY-SA 3.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Granada_02_(cropped).jpg"
+ },
  "Albaicín": {
   "f": "lugares/albaicin.jpg",
   "autor": "Bert K.",
@@ -905,6 +911,12 @@ window.FOTOS = {
   "autor": "Tschubby",
   "lic": "CC BY-SA 3.0",
   "url": "https://commons.wikimedia.org/wiki/File:Karte_Z%C3%BCrcher_Stadtkreis_1.png"
+ },
+ "Niederdorf": {
+  "f": "lugares/niederdorf.jpg",
+  "autor": "Jochen Teufel",
+  "lic": "CC BY-SA 3.0",
+  "url": "https://commons.wikimedia.org/wiki/File:Z%C3%BCrich_view_from_Lindenhof_(2009).jpg"
  },
  "Lago de Zúrich": {
   "f": "lugares/lago-de-zurich.jpg",
