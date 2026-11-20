@@ -164,6 +164,7 @@
         <p>Elige una ruta armada, o los países y días que quieras. El sitio ordena las ciudades desde París, reparte las noches y recalcula el presupuesto. Puedes sacar ciudades o sumarles noches con − y +, y reordenar las paradas arrastrándolas en el itinerario.</p></div>
       <div class="armador" id="armador"></div>
       <p class="arm-total" id="arm-total" aria-live="polite"></p>
+      <div class="linea-wrap"><div class="linea" id="linea" aria-label="Línea de tiempo de la ruta"></div></div>
       <div class="ruta-grid">
         <div class="mapa grande" id="mapa-ruta" aria-label="Mapa de la ruta completa"></div>
         <ol class="itinerario" id="itinerario"></ol>
@@ -203,6 +204,12 @@
       $("#h-dias").textContent = r.dias;
       $("#h-paises").textContent = r.paises.length;
       $("#h-paradas").textContent = r.paradas.length;
+      const ICO = { Tren: "🚆", Vuelo: "✈️", Auto: "🚗" };
+      $("#linea").innerHTML = r.paradas.map((p, i) => {
+        const tr = r.tramos[i];
+        return `<a class="lt-par${p.id === "mussy" ? " raiz" : ""}" href="#parada-${p.id === "beaune" ? "mussy" : p.id}" style="flex-grow:${Math.max(p.noches, 0.7)}" title="${esc(p.ciudad.nombre)} · ${nochesTxt(p.noches)}"><b>${esc(p.ciudad.nombre)}</b><small>${p.noches ? p.noches + "n" : "paso"}</small></a>` +
+          (tr ? `<span class="lt-tr" title="${tr.tipo} · ~${tr.horas} h">${ICO[tr.tipo]}<small>${tr.horas}h</small></span>` : "");
+      }).join("");
       $("#itinerario").innerHTML = `<li class="vuelo-li"><span class="dia">Día 0</span><div><b>Vuelo Santiago → París</b><small>Noche a bordo</small></div></li>` +
         r.paradas.map((p, i) => {
           const t = r.tramos[i];

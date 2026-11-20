@@ -3,6 +3,10 @@
 Lo más nuevo arriba. Cada cambio publicado agrega una entrada.
 
 ## 2026-11-20
+- **Línea de tiempo** sobre el mapa: una franja con cada parada (más ancha si hay más noches) y el medio de transporte entre ellas (🚆 ✈️ 🚗 con horas). Al tocar una parada baja a su detalle.
+- **Más pulido**: las secciones y tarjetas aparecen suavemente al bajar, y las fotos de países y paradas reaccionan al pasar el mouse.
+- **Celular**: el menú queda en una sola fila deslizable, los datos de la portada caben en una línea y las rutas armadas se deslizan de lado.
+- Versión de enlaces subida a `?v=4`.
 - **Ruta arrastrable**: en el itinerario se pueden mover las paradas arrastrándolas (o con las flechas ▲ ▼, que sirven en el celular) y sumar/restar noches con − y +. París queda siempre primero y Beaune siempre después de Mussy. El tren/vuelo entre ciudades y el presupuesto se recalculan solos.
 - **Países plegables** en el armador: cada país es una tarjeta que se abre y cierra y muestra cuántas de sus ciudades van en la ruta.
 - **Barra fija** al pie mientras ves la ruta: días, paradas y costo por persona siempre a la vista.
