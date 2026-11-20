@@ -429,3 +429,16 @@ html { scroll-behavior: smooth; }
 .voto button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
 .voto small { color: var(--muted); }
 @media print { .votos-panel, .voto { display: none !important; } }
+
+.ranking { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 6px; }
+.ranking h3 { margin: 0; font-size: 1.1rem; }
+.ranking ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; counter-reset: r; }
+.ranking li { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 10px; align-items: baseline; counter-increment: r; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.ranking li::before { content: counter(r); font-family: var(--font-mono); color: var(--muted); }
+.ranking li a { color: var(--ink); font-weight: 600; text-decoration: none; }
+.ranking li a:hover { color: var(--accent); }
+.ranking li span { font-family: var(--font-mono); font-weight: 700; color: var(--panorama); }
+.ranking li span.neg { color: var(--rouge); }
+.ranking li small { color: var(--muted); }
+.ranking p { margin: 0; font-size: .92rem; }
+@media print { .ranking { display: none !important; } }

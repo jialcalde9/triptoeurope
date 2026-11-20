@@ -389,9 +389,22 @@
         el.innerHTML = `<span>¿Vamos?</span><button type="button" data-v="1" data-id="${id}" aria-pressed="${mios[id] === 1}" aria-label="A favor">👍</button><button type="button" data-v="-1" data-id="${id}" aria-pressed="${mios[id] === -1}" aria-label="En contra">👎</button>` +
           (quien.length ? `<small>${si.length ? `👍 ${si.length} (${esc(si.join(", "))})` : ""}${si.length && no.length ? " · " : ""}${no.length ? `👎 ${no.length} (${esc(no.join(", "))})` : ""}</small>` : "");
       });
+      // Ranking de las ciudades de la ruta según los votos
+      const filas = (rutaActual ? rutaActual.paradas.filter(x => x.id !== "beaune") : []).map(x => {
+        const q = Object.entries(VT.personas).map(([k, v]) => [k.slice(2), v && v[x.id]]).filter(y => y[1]);
+        return { n: x.ciudad.nombre, id: x.id, si: q.filter(y => y[1] === 1).length, no: q.filter(y => y[1] === -1).length, votos: q.length };
+      });
+      const con = filas.filter(f => f.votos).sort((a, b) => (b.si - b.no) - (a.si - a.no) || b.si - a.si);
+      const sin = filas.filter(f => !f.votos);
+      const unanimes = con.filter(f => !f.no).map(f => f.n), polemicas = con.filter(f => f.no).map(f => f.n);
+      const ranking = con.length ? `<div class="ranking"><h3>Ciudades más votadas</h3><ol>${con.map(f => `<li><a href="#parada-${f.id}">${esc(f.n)}</a><span class="${f.si - f.no < 0 ? "neg" : ""}">${f.si - f.no > 0 ? "+" : ""}${f.si - f.no}</span><small>👍 ${f.si} · 👎 ${f.no}</small></li>`).join("")}</ol>
+        ${unanimes.length ? `<p>✅ <b>Todos a favor:</b> ${unanimes.map(esc).join(", ")}</p>` : ""}
+        ${polemicas.length ? `<p>⚖️ <b>Para conversar</b> (tienen votos en contra): ${polemicas.map(esc).join(", ")}</p>` : ""}
+        ${sin.length ? `<p class="votos-nota">Sin votos todavía: ${sin.map(f => esc(f.n)).join(", ")}</p>` : ""}</div>` : "";
       const otros = Object.keys(VT.personas).map(k => k.slice(2));
       $("#votos").innerHTML = `<div class="votos-fila"><label>Tu nombre <input id="v-nombre" maxlength="20" placeholder="Ej: Juan" value="${esc(VT.yo)}"></label><span id="v-msg" aria-live="polite"></span></div>
         <p class="votos-nota">Pon tu nombre y vota 👍 o 👎 en cada ciudad de la ruta (abajo). Luego usa "Copiar enlace de esta ruta": el enlace lleva tu ruta y tus votos, y al abrirlo tus hermanos los ven y suman los suyos.</p>
+        ${ranking}
         ${otros.length ? `<p class="votos-quienes">Votos de: ${otros.map(n => `<span class="chip-v">${esc(n)}${n === VT.yo ? "" : ` <button type="button" data-quitar="${esc(n)}" aria-label="Quitar votos de ${esc(n)}">×</button>`}</span>`).join(" ")}</p>` : ""}`;
     }
     document.addEventListener("click", e => {
