@@ -3,6 +3,8 @@
 Lo más nuevo arriba. Cada cambio publicado agrega una entrada.
 
 ## 2026-11-20
+- **Vista previa al compartir**: al pegar el enlace del sitio en WhatsApp u otras apps ahora aparece una foto de París, el título y una descripción corta (antes salía solo el texto del enlace).
+- **Copiar resumen para WhatsApp**: botón nuevo que copia un texto listo para pegar con la llegada y salida, las ciudades con sus noches, el costo aproximado por persona y el enlace para ver y votar. Versión de enlaces `?v=12`.
 - **Llegada y salida por Madrid o París**: nuevo selector en el armador ("Llegamos a" y "Volvemos desde"). Se puede entrar por Madrid, y volver desde Madrid, París o la última ciudad. La ruta se ordena desde la ciudad de llegada; si entran y salen por la misma, arma un circuito y agrega el tramo de regreso (con su costo) antes del vuelo a Santiago. El itinerario muestra "Vuelo Santiago → Madrid" y "Vuelo Madrid → Santiago". Se avisa que Madrid suele salir más barato desde Santiago; falta confirmar precios en Google Flights. El presupuesto sigue usando el pasaje que se ponga a mano en el simulador. Versión de enlaces `?v=11`.
 - **Fotos nuevas**: Mirador de San Nicolás (Granada, con la iglesia de San Nicolás) y Niederdorf (Zúrich). Solo falta Weinmarkt (Lucerna): no hay foto libre en Wikipedia.
 - **Celular**: revisado todo en pantalla de 375 px, sin desbordes; los botones − y + y los de voto se agrandan para el dedo. Versión de enlaces `?v=10`.

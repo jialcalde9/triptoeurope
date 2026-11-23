@@ -201,6 +201,7 @@
       ${avisoImport ? '<p class="aviso-ok">Se cargó una ruta compartida contigo. Puedes cambiarla como quieras.</p>' : ""}
       <div class="acciones-ruta">
         <button type="button" class="btn ghost" id="btn-compartir">🔗 Copiar enlace de esta ruta</button>
+        <button type="button" class="btn ghost" id="btn-wsp">💬 Copiar resumen para WhatsApp</button>
         <button type="button" class="btn ghost" id="btn-imprimir">🖨 Imprimir / guardar PDF</button>
         <span id="cmp-msg" aria-live="polite"></span>
       </div>
@@ -327,6 +328,15 @@
       const b = e.target.closest("button");
       if (!b) return;
       if (b.id === "btn-imprimir") window.print();
+      if (b.id === "btn-wsp") {
+        const r = rutaActual, url = location.origin + location.pathname + "?r=" + codificar({ s: armador.estado(), n: VT.yo, v: (VT.yo && VT.personas[kp(VT.yo)]) || {} });
+        const lineas = r.paradas.filter(p => p.id !== "beaune").map((p, i) => `${i + 1}. ${p.ciudad.nombre}${p.noches ? ` (${nochesTxt(p.noches)})` : " (de paso)"}`);
+        const txt = ["*Rumbo a Mussy* · ruta de " + r.dias + " días", "Llegada: " + r.paradas[0].ciudad.nombre + " · Vuelta desde: " + ciudad(r.salidaId).nombre, "", ...lineas, "", "Sale ~" + millones(sim.estimar(armador.ruta())) + " CLP por persona (aprox.)", "Mírala y vota: " + url].join("\n");
+        let ok = false;
+        try { await navigator.clipboard.writeText(txt); ok = true; } catch (err) {}
+        if (!ok) prompt("Copia este texto:", txt);
+        $("#cmp-msg").textContent = ok ? "¡Resumen copiado! Pégalo en WhatsApp." : "";
+      }
       if (b.id === "btn-compartir") {
         const url = location.origin + location.pathname + "?r=" + codificar({ s: armador.estado(), n: VT.yo, v: (VT.yo && VT.personas[kp(VT.yo)]) || {} });
         let ok = false;
