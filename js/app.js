@@ -220,6 +220,14 @@
       <div class="barra-fija" id="barra" aria-live="polite"></div>
     </section>
 
+    <section class="wrap bloque" id="clima">
+      <div class="cabeza"><p class="eyebrow">Clima</p><h2>¿Cuándo conviene viajar?</h2>
+        <p>Promedios de 2015 a 2024 de las ciudades de tu ruta, pesados por las noches en cada una. Toca un mes para ver el detalle por ciudad.</p></div>
+      <div class="meses" id="meses" role="group" aria-label="Meses del año"></div>
+      <div class="clima-det" id="clima-det" aria-live="polite"></div>
+      <p class="nota-chica">Julio y agosto son temporada alta en Europa (más caro y con más gente); en mayo, junio, septiembre y octubre suele haber mejores precios. Es una regla general: confirmar con precios reales de pasajes y alojamientos.</p>
+    </section>
+
     <section class="wrap bloque">
       <div class="cabeza"><p class="eyebrow">Fichas completas</p><h2>Cada país en detalle</h2>
         <p>Mapas con lugares, fotos, qué comer y datos útiles de cada ciudad.</p></div>
@@ -288,6 +296,7 @@
       dibujarRuta();
       pintarVotos();
       pintarAntes();
+      pintarClima();
       if (sim) sim.actualizar();
     }
     const millones = t => (t / 1e6).toFixed(1).replace(".", ",") + " M";
@@ -475,6 +484,41 @@
       msg.textContent = "Calendario descargado. Ábrelo para agregarlo a tu calendario.";
     }
     document.addEventListener("click", e => { if (e.target.closest("#btn-ics")) descargarICS(); });
+    // ---------- Clima: promedios por mes de las ciudades de la ruta ----------
+    const MES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const MESL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    let mesSel = -1;
+    const banda = (tx, ll) => tx >= 30 ? ["Calor fuerte", "cal"] : tx >= 18 && ll <= 9 ? ["Ideal", "ideal"] : tx >= 14 ? ["Agradable", "agr"] : ["Fresco o frío", "fri"];
+    function climaRuta(r) {
+      const CL = window.CLIMA || {};
+      const ps = r.paradas.filter(p => p.noches > 0 && CL[p.id]);
+      const peso = ps.reduce((s, p) => s + p.noches, 0);
+      if (!peso) return null;
+      return MES.map((_, m) => {
+        const x = k => ps.reduce((s, p) => s + CL[p.id][m][k] * p.noches, 0) / peso;
+        return { tx: x(0), tn: x(1), ll: x(2) };
+      });
+    }
+    function pintarClima() {
+      const el = $("#meses");
+      if (!el) return;
+      const datos = rutaActual ? climaRuta(rutaActual) : null;
+      if (!datos) { el.innerHTML = ""; $("#clima-det").innerHTML = ""; return; }
+      const fm = AN.fecha ? new Date(AN.fecha + "T12:00:00").getMonth() : -1;
+      const sel = mesSel >= 0 ? mesSel : fm;
+      const ideales = datos.map((d, i) => [i, banda(d.tx, d.ll)[1]]).filter(x => x[1] === "ideal").map(x => MESL[x[0]]);
+      el.innerHTML = datos.map((d, i) => { const [txt, cls] = banda(d.tx, d.ll);
+        return `<button type="button" class="mes ${cls}" data-mes="${i}" aria-pressed="${sel === i}"><b>${MES[i]}</b><span>${Math.round(d.tx)}° / ${Math.round(d.tn)}°</span><small>${txt}</small></button>`; }).join("");
+      let det = `<p class="clima-res">${ideales.length ? `Para tu ruta, los meses más cómodos (18 °C o más de máxima, con poca lluvia y sin calor fuerte) son: <b>${ideales.join(", ")}</b>.` : "Ningún mes cumple del todo con 18 °C o más, poca lluvia y sin calor fuerte para esta ruta; mira el detalle de cada mes."}</p>`;
+      if (sel >= 0) {
+        const CL = window.CLIMA, ps = rutaActual.paradas.filter(p => p.id !== "beaune");
+        det += `<table class="clima-tabla"><caption>Detalle de ${MESL[sel]}</caption><thead><tr><th>Ciudad</th><th>Máx. / mín.</th><th>Días con lluvia</th></tr></thead><tbody>` +
+          ps.filter(p => CL[p.id]).map(p => { const [tx, tn, ll] = CL[p.id][sel]; return `<tr><td>${esc(p.ciudad.nombre)}<small>${p.noches ? nochesTxt(p.noches) : "de paso"}</small></td><td class="${banda(tx, ll)[1]}">${Math.round(tx)}° / ${Math.round(tn)}°</td><td>${ll} de 30</td></tr>`; }).join("") + `</tbody></table>`;
+      }
+      $("#clima-det").innerHTML = det;
+    }
+    document.addEventListener("click", e => { const b = e.target.closest("[data-mes]"); if (b) { mesSel = mesSel === +b.dataset.mes ? -1 : +b.dataset.mes; pintarClima(); } });
+    document.addEventListener("change", e => { if (e.target.id === "a-fecha") { mesSel = -1; pintarClima(); } });
     const it = $("#itinerario");
     const ids = () => [...it.querySelectorAll("li.mov")].map(l => l.dataset.id);
     it.addEventListener("click", e => {

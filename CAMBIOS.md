@@ -3,6 +3,7 @@
 Lo más nuevo arriba. Cada cambio publicado agrega una entrada.
 
 ## 2026-11-20
+- **¿Cuándo conviene viajar?** (sección nueva, bajo la ruta): 12 tarjetas, una por mes, con la temperatura máxima/mínima promedio de las ciudades de tu ruta (pesada por las noches en cada una) y una etiqueta: Ideal, Agradable, Calor fuerte o Fresco/frío. Dice qué meses son más cómodos para esa ruta, y al tocar un mes muestra el detalle por ciudad con días de lluvia. Si pones la fecha de salida en "Antes de viajar", abre ese mes. Datos reales de 2015 a 2024 (Open-Meteo), guardados en el sitio: no consulta nada en línea. Incluye la nota general de temporada alta/baja. Versión de enlaces `?v=14`.
 - **Calendario (.ics)**: botón "Descargar calendario" que genera un archivo para Google Calendar, Outlook o el calendario del celular, con la fecha de salida de "Antes de viajar": los vuelos, cada ciudad con sus noches y los plazos pendientes de tareas y reservas. Si falta la fecha de salida, avisa.
 - **Frases útiles** en las páginas de Francia, Italia y España: frases de viaje en francés e italiano con cómo se leen, y en España las diferencias con el español chileno (vale, coger, zumo, etc.). Versión de enlaces `?v=13`.
 - **Vista previa al compartir**: al pegar el enlace del sitio en WhatsApp u otras apps ahora aparece una foto de París, el título y una descripción corta (antes salía solo el texto del enlace).

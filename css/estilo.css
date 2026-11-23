@@ -456,3 +456,23 @@ html { scroll-behavior: smooth; }
 .frases small { color: var(--muted); font-size: .82rem; }
 .frases b { font-size: 1.02rem; }
 .frases i { color: var(--accent); font-family: var(--font-mono); font-size: .8rem; font-style: normal; }
+
+/* Clima */
+.meses { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+.mes { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); border-left-width: 4px; background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; }
+.mes:hover { transform: translateY(-2px); }
+.mes[aria-pressed="true"] { outline: 2px solid var(--accent); }
+.mes b { font-size: .95rem; }
+.mes span { font-family: var(--font-mono); font-size: .8rem; }
+.mes small { color: var(--muted); font-size: .72rem; }
+.mes.ideal { border-left-color: var(--panorama); } .mes.agr { border-left-color: var(--accent); }
+.mes.cal { border-left-color: var(--rouge); } .mes.fri { border-left-color: var(--muted); }
+.clima-res { margin: 0 0 12px; }
+.clima-tabla { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.clima-tabla caption { text-align: left; font-weight: 700; padding: 6px 0; }
+.clima-tabla th, .clima-tabla td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--line); }
+.clima-tabla th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+.clima-tabla td small { display: block; color: var(--muted); font-size: .78rem; }
+.clima-tabla td.ideal { color: var(--panorama); font-weight: 700; } .clima-tabla td.cal { color: var(--rouge); font-weight: 700; }
+@media (max-width: 700px) { .meses { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media print { #clima { display: none !important; } }
