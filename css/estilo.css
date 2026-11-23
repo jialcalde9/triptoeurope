@@ -476,3 +476,35 @@ html { scroll-behavior: smooth; }
 .clima-tabla td.ideal { color: var(--panorama); font-weight: 700; } .clima-tabla td.cal { color: var(--rouge); font-weight: 700; }
 @media (max-width: 700px) { .meses { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media print { #clima { display: none !important; } }
+
+/* Menos recargado: votos y planes plegados */
+.voto { display: none; }
+#ruta.votando .voto { display: flex; }
+.votar { margin: 22px 0 6px; }
+.votar > summary, .plan > summary { cursor: pointer; font-weight: 700; color: var(--accent); padding: 6px 0; list-style: none; }
+.votar > summary::-webkit-details-marker, .plan > summary::-webkit-details-marker { display: none; }
+.votar > summary::before, .plan > summary::before { content: "＋ "; }
+.votar[open] > summary::before, .plan[open] > summary::before { content: "－ "; }
+.plan { margin: 10px 0 4px; }
+.plan-dias { list-style: none; margin: 6px 0 8px; padding: 0; display: grid; gap: 6px; }
+.plan-dias li { display: grid; grid-template-columns: 64px 1fr; gap: 10px; font-size: .92rem; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.plan-dias b { font-family: var(--font-mono); font-size: .78rem; color: var(--muted); padding-top: 2px; }
+.equipaje { margin-top: 22px; }
+@media print { .votar, .plan { display: none !important; } }
+
+/* Índice de la página (pegajoso bajo el encabezado) */
+.indice { position: sticky; top: var(--top-h, 60px); z-index: 900; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.indice .wrap { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-block: 6px; }
+.indice .wrap::-webkit-scrollbar { display: none; }
+.indice a { white-space: nowrap; font-size: .85rem; font-weight: 600; color: var(--muted); text-decoration: none; padding: 5px 12px; border-radius: 999px; }
+.indice a:hover { color: var(--ink); background: var(--accent-soft); }
+html { scroll-padding-top: calc(var(--top-h, 60px) + 52px); }
+.parada { scroll-margin-top: calc(var(--top-h, 60px) + 56px); }
+@media print { .indice { display: none !important; } }
+/* Celular: solo el índice queda pegado (el encabezado se desplaza) para no tapar la pantalla */
+@media (max-width: 600px) {
+  .top { position: static; }
+  .indice { top: 0; }
+  html { scroll-padding-top: 60px; }
+  .parada { scroll-margin-top: 64px; }
+}

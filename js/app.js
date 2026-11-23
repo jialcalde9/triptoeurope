@@ -192,6 +192,7 @@
       <div class="slide-info"><span id="slide-lugar">${SLIDES[0][1]}</span>
         <div class="puntos">${SLIDES.map(([, n], i) => `<button type="button" data-slide="${i}" aria-label="Ver ${n}"${i ? "" : ' aria-current="true"'}></button>`).join("")}</div></div>
     </section>
+    <nav class="indice" aria-label="Secciones de esta página"><div class="wrap"><a href="#ruta">Ruta</a><a href="#clima">Clima</a><a href="#paises">Países</a><a href="#presupuesto">Presupuesto</a><a href="#antes">Antes de viajar</a></div></nav>
 
     <section class="wrap bloque" id="ruta">
       <div class="cabeza"><p class="eyebrow">Arma la ruta</p><h2>¿Por dónde vamos?</h2>
@@ -215,7 +216,7 @@
         <div class="mapa grande" id="mapa-ruta" aria-label="Mapa de la ruta completa"></div>
         <ol class="itinerario" id="itinerario"></ol>
       </div>
-      <div class="votos-panel" id="votos"></div>
+      <details class="votar" id="votar"${avisoImport && Object.keys(VT.personas).length ? " open" : ""}><summary>Votar entre hermanos</summary><div class="votos-panel" id="votos"></div></details>
       <div class="paradas" id="paradas"></div>
       <div class="barra-fija" id="barra" aria-live="polite"></div>
     </section>
@@ -228,7 +229,7 @@
       <p class="nota-chica">Julio y agosto son temporada alta en Europa (más caro y con más gente); en mayo, junio, septiembre y octubre suele haber mejores precios. Es una regla general: confirmar con precios reales de pasajes y alojamientos.</p>
     </section>
 
-    <section class="wrap bloque">
+    <section class="wrap bloque" id="paises">
       <div class="cabeza"><p class="eyebrow">Fichas completas</p><h2>Cada país en detalle</h2>
         <p>Mapas con lugares, fotos, qué comer y datos útiles de cada ciudad.</p></div>
       <div class="paises">${V.paises.map(p => `
@@ -253,6 +254,7 @@
         <div><h3>Lista de tareas</h3><ul class="check" id="a-tareas"></ul></div>
         <div><h3>Reservas con anticipación</h3><p class="nota-chica">Solo lugares de tu ruta. Plazos aproximados: confirma siempre en el sitio oficial.</p><ul class="check" id="a-reservas"></ul></div>
       </div>
+      <details class="plan equipaje" id="equipaje"><summary>Qué llevar en la maleta</summary><p class="nota-chica" id="eq-nota"></p><ul class="check" id="a-equipaje"></ul></details>
     </section>
 
     <section class="wrap bloque">
@@ -260,6 +262,10 @@
       <div class="pendientes">${V.pendientes.map(([t, d]) => `<article><h3>${esc(t)}</h3><p>${esc(d)}</p></article>`).join("")}</div>
     </section>`;
 
+    if ($("#votar").open) $("#ruta").classList.add("votando");
+    document.addEventListener("toggle", e => { if (e.target.id === "votar") $("#ruta").classList.toggle("votando", e.target.open); }, true);
+    const ajustarTop = () => document.documentElement.style.setProperty("--top-h", (document.querySelector(".top")?.offsetHeight || 60) + "px");
+    ajustarTop(); window.addEventListener("resize", ajustarTop);
     let sim = null;
     const nombrePais = id => (window.CATALOGO.paises.find(p => p.id === id) || {}).nombre || id;
     // Se llama cada vez que el armador cambia la ruta
@@ -290,6 +296,7 @@
           ${c.foto ? `<img src="${BASE}${c.foto}" alt="${esc(c.nombre)}" loading="lazy" title="${cred}">` : ""}
           <div><p class="eyebrow">${esc(nombrePais(c.pais))} · ${diasTxt(p)} · ${nochesTxt(p.noches)}</p><h3>${esc(c.nombre)}</h3>
           <p>${esc(c.resumen || "")}</p><ul>${c.imperdibles.map(x => `<li>${esc(x)}</li>`).join("")}</ul>
+          ${planHtml(p)}
           <div class="voto" data-voto="${p.id}"></div>
           ${c.ficha ? `<a class="cta" href="${urlCiudad(p.id)}">Ver ficha completa →</a>` : ""}</div></article>`;
       }).join("");
@@ -503,7 +510,7 @@
       const el = $("#meses");
       if (!el) return;
       const datos = rutaActual ? climaRuta(rutaActual) : null;
-      if (!datos) { el.innerHTML = ""; $("#clima-det").innerHTML = ""; return; }
+      if (!datos) { el.innerHTML = ""; $("#clima-det").innerHTML = ""; pintarEquipaje(null, -1); return; }
       const fm = AN.fecha ? new Date(AN.fecha + "T12:00:00").getMonth() : -1;
       const sel = mesSel >= 0 ? mesSel : fm;
       const ideales = datos.map((d, i) => [i, banda(d.tx, d.ll)[1]]).filter(x => x[1] === "ideal").map(x => MESL[x[0]]);
@@ -516,9 +523,44 @@
           ps.filter(p => CL[p.id]).map(p => { const [tx, tn, ll] = CL[p.id][sel]; return `<tr><td>${esc(p.ciudad.nombre)}<small>${p.noches ? nochesTxt(p.noches) : "de paso"}</small></td><td class="${banda(tx, ll)[1]}">${Math.round(tx)}° / ${Math.round(tn)}°</td><td>${ll} de 30</td></tr>`; }).join("") + `</tbody></table>`;
       }
       $("#clima-det").innerHTML = det;
+      pintarEquipaje(datos, sel);
     }
     document.addEventListener("click", e => { const b = e.target.closest("[data-mes]"); if (b) { mesSel = mesSel === +b.dataset.mes ? -1 : +b.dataset.mes; pintarClima(); } });
     document.addEventListener("change", e => { if (e.target.id === "a-fecha") { mesSel = -1; pintarClima(); } });
+    // Plan sugerido por día: reparte lo que hacer de la ciudad según sus noches
+    function planHtml(p) {
+      const v = ciudad(p.id), hacer = (v && v.hacer) || [];
+      if (!hacer.length || !p.noches) return "";
+      const n = p.noches, por = Math.ceil(hacer.length / n);
+      const filas = Array.from({ length: n }, (_, k) => {
+        const it = hacer.slice(k * por, (k + 1) * por);
+        return `<li><b>Día ${p.desde + k}</b><span>${it.length ? it.map(esc).join(" · ") : "Día libre: pasear sin apuro o repetir lo que más gustó."}</span></li>`;
+      }).join("");
+      const comer = (v.comer || []).slice(0, 2);
+      return `<details class="plan"><summary>Plan sugerido por día</summary><ul class="plan-dias">${filas}</ul>${comer.length ? `<p class="nota-chica">Para comer: ${comer.map(esc).join(" · ")}</p>` : ""}</details>`;
+    }
+    // Maleta: lista base más lo que depende del mes elegido y de las ciudades de la ruta
+    function pintarEquipaje(datos, sel) {
+      const el = $("#a-equipaje");
+      if (!el) return;
+      const base = [["Pasaportes, tarjetas y copias digitales de todo", ""], ["Zapatillas cómodas y ya usadas", "Se camina mucho"],
+        ["Mochila liviana o maleta de mano", "Hay mucha escalera y tren"], ["Adaptador universal y power bank", "Los enchufes de dos patas redondas (tipo C) sirven en casi toda Europa"],
+        ["Botella reutilizable", ""], ["Ropa por capas", ""], ["Remedios personales con receta", ""]];
+      const extra = [], ciu = rutaActual ? rutaActual.ciudades : new Set();
+      if (datos && sel >= 0) {
+        const { tx, tn, ll } = datos[sel], g = Math.round(tx) + "° de máxima promedio";
+        if (tx < 12) extra.push(["Abrigo grueso, gorro, guantes y ropa térmica", g]);
+        else if (tx < 18) extra.push(["Chaqueta abrigadora y polerón", g]);
+        if (tn < 6 && tx >= 12) extra.push(["Algo cálido para las mañanas y las noches", Math.round(tn) + "° de mínima promedio"]);
+        if (tx >= 24) extra.push(["Ropa liviana, sombrero y lentes de sol", g]);
+        if (tx >= 28) extra.push(["Protector solar y un plan para evitar el calor del mediodía", g]);
+        if (ll >= 9) extra.push(["Paraguas compacto o cortaviento impermeable", Math.round(ll) + " días de lluvia al mes"]);
+      }
+      if (["roma", "florencia", "venecia", "napoles", "pisa", "verona", "como"].some(c => ciu.has(c))) extra.push(["Algo que cubra hombros y rodillas para entrar a iglesias", "El Vaticano y varias catedrales lo exigen"]);
+      if (ciu.has("cinque")) extra.push(["Zapatillas con buen agarre para los senderos", "Cinque Terre"]);
+      $("#eq-nota").textContent = datos && sel >= 0 ? "Incluye lo que depende del clima de " + MESL[sel] + " en tu ruta." : "Elige un mes en «¿Cuándo conviene viajar?» o pon la fecha de salida para sumar lo que depende del clima.";
+      el.innerHTML = [...extra, ...base].map(([n, nota]) => `<li><label><input type="checkbox" data-chk="${esc("e:" + n)}"${AN.hechos["e:" + n] ? " checked" : ""}><span><b>${esc(n)}</b>${nota ? `<small>${esc(nota)}</small>` : ""}</span></label></li>`).join("");
+    }
     const it = $("#itinerario");
     const ids = () => [...it.querySelectorAll("li.mov")].map(l => l.dataset.id);
     it.addEventListener("click", e => {
