@@ -147,6 +147,15 @@
     const guardarVotos = () => { try { localStorage.setItem(VK, JSON.stringify(VT)); } catch (e) {} };
     const limpiar = n => String(n || "").replace(/[^\p{L}\p{N} ._-]/gu, "").trim().slice(0, 20);
     const kp = n => "p:" + n;
+    const okCiudad = id => typeof id === "string" && Object.prototype.hasOwnProperty.call(CAT.ciudades, id);
+    let nubeMsg = "";
+    (function unirseSala() {
+      const c = new URLSearchParams(location.search).get("sala");
+      if (!c || !window.Nube || !Nube.disponible || !Nube.unirse(c)) return;
+      const u = new URL(location.href); u.searchParams.delete("sala");
+      history.replaceState(null, "", u.pathname + u.search + u.hash);
+      nubeMsg = "Te uniste a la sala compartida.";
+    })();
     let avisoImport = false;
     (function importar() {
       const q = new URLSearchParams(location.search).get("r");
@@ -409,6 +418,50 @@
       if (e.target.id === "a-fecha") { AN.fecha = e.target.value; guardarAN(); pintarAntes(); }
       else if (e.target.dataset && e.target.dataset.chk) { AN.hechos[e.target.dataset.chk] = e.target.checked; guardarAN(); }
     });
+    // ---- Sala compartida: cada persona escribe solo sus votos y lee los de las demás ----
+    const kn = n => encodeURIComponent(n).replace(/\./g, "%2E");
+    const dn = k => { try { return decodeURIComponent(k); } catch (e) { return ""; } };
+    const ordenado = o => (o && typeof o === "object") ? Object.fromEntries(Object.keys(o).sort().map(k => [k, ordenado(o[k])])) : o;
+    const enfocadoEn = sel => { const el = $(sel); return !!(el && document.activeElement && el.contains(document.activeElement)); };
+    async function empujarVotos(antes) {
+      if (!window.Nube || !Nube.activa()) return;
+      try {
+        if (antes && antes !== VT.yo) await Nube.del("votos/" + kn(antes));
+        if (VT.yo) {
+          const m = VT.personas[kp(VT.yo)] || {};
+          if (Object.keys(m).length) await Nube.put("votos/" + kn(VT.yo), m); else await Nube.del("votos/" + kn(VT.yo));
+        }
+        nubeMsg = "Sincronizado.";
+      } catch (e) { nubeMsg = "No se pudo sincronizar (¿sin internet?)."; }
+      const el = $("#nube-msg"); if (el) el.textContent = nubeMsg;
+    }
+    async function traerVotos() {
+      if (!window.Nube || !Nube.activa()) return;
+      try {
+        const d = (await Nube.get("votos")) || {}, otros = {};
+        Object.entries(d).forEach(([k, v]) => {
+          const n = limpiar(dn(k));
+          if (!n || n === VT.yo || !v || typeof v !== "object") return;
+          const m = {};
+          Object.entries(v).forEach(([id, x]) => { if (okCiudad(id) && (x === 1 || x === -1 || x === 2)) m[id] = x; });
+          otros[kp(n)] = m;
+        });
+        const mio = VT.yo && VT.personas[kp(VT.yo)] ? { [kp(VT.yo)]: VT.personas[kp(VT.yo)] } : {};
+        const nuevo = { ...mio, ...otros };
+        if (JSON.stringify(ordenado(nuevo)) !== JSON.stringify(ordenado(VT.personas))) {
+          VT.personas = nuevo; guardarVotos();
+          if (!enfocadoEn("#votos")) pintarVotos();
+        }
+        nubeMsg = "Sincronizado.";
+      } catch (e) { nubeMsg = "No se pudo sincronizar (¿sin internet?)."; }
+      const el = $("#nube-msg"); if (el) el.textContent = nubeMsg;
+    }
+    if (window.Nube && Nube.disponible) {
+      document.addEventListener("click", e => Nube.click(e, async msg => { nubeMsg = msg; await empujarVotos(); await traerVotos(); pintarVotos(); }));
+      setInterval(() => { if (document.visibilityState === "visible") traerVotos(); }, 10000);
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") traerVotos(); });
+      if (Nube.activa()) empujarVotos().then(traerVotos);
+    }
     const PTS = { "2": 3, "1": 1, "-1": -2 };
     let msgArmar = "";
     const vtAbiertos = new Map();
@@ -454,7 +507,8 @@
         }).join("")}</ul></details>`;
       }).join("");
       const otros = Object.keys(VT.personas).map(k => k.slice(2));
-      $("#votos").innerHTML = `<div class="votos-fila"><label>Tu nombre <input id="v-nombre" maxlength="20" placeholder="Ej: Juan" value="${esc(VT.yo)}"></label><span id="v-msg" aria-live="polite"></span></div>
+      $("#votos").innerHTML = `${window.Nube && Nube.disponible ? Nube.html(nubeMsg) : ""}
+        <div class="votos-fila"><label>Tu nombre <input id="v-nombre" maxlength="20" placeholder="Ej: Juan" value="${esc(VT.yo)}"></label><span id="v-msg" aria-live="polite"></span></div>
         <p class="votos-nota">Pon tu nombre y marca cada ciudad: ⭐ sí o sí, 👍 me gusta, 👎 descartar. Luego usa «Copiar enlace de esta ruta»: el enlace lleva tus votos, y al abrirlo tus hermanos los ven y suman los suyos.</p>
         <div class="vt-lista"><h3>Votar ciudades</h3>${lista}</div>
         <div class="vt-armar"><button type="button" class="btn" id="v-armar">🧭 Armar ruta con lo más votado</button>
@@ -470,9 +524,10 @@
         if (!VT.yo) { const n = $("#v-nombre"); n.focus(); $("#v-msg").textContent = "Primero escribe tu nombre."; return; }
         const k = kp(VT.yo), v = VT.personas[k] = VT.personas[k] || {};
         if (v[b.dataset.id] === +b.dataset.v) delete v[b.dataset.id]; else v[b.dataset.id] = +b.dataset.v;
-        guardarVotos(); pintarVotos();
+        guardarVotos(); pintarVotos(); empujarVotos();
       } else if (b.dataset.quitar) {
         delete VT.personas[kp(b.dataset.quitar)]; guardarVotos(); pintarVotos();
+        if (window.Nube && Nube.activa()) Nube.del("votos/" + kn(b.dataset.quitar)).catch(() => {});
       } else if (b.id === "v-armar") {
         const res = armador.armarVotados(puntosCiudades()), nom = id => ciudad(id).nombre;
         msgArmar = !res.ok ? "Todavía no hay ciudades con puntaje positivo: vota con ⭐ o 👍."
@@ -485,7 +540,7 @@
       if (e.target.id !== "v-nombre") return;
       const n = limpiar(e.target.value), antes = VT.yo;
       if (antes && n && n !== antes && VT.personas[kp(antes)]) { VT.personas[kp(n)] = VT.personas[kp(antes)]; delete VT.personas[kp(antes)]; }
-      VT.yo = n; guardarVotos(); pintarVotos();
+      VT.yo = n; guardarVotos(); pintarVotos(); empujarVotos(antes);
     });
     // Calendario (.ics): vuelos, cada ciudad con sus noches y los plazos pendientes, a partir de la fecha de salida
     function descargarICS() {
@@ -785,33 +840,54 @@
     const guardar = () => { try { localStorage.setItem(KG, JSON.stringify(G)); } catch (e) {} };
     // Los montos se guardan en centavos (enteros) para no arrastrar errores de decimales
     const mon = m => G.moneda === "CLP" ? "$" + Math.round(m / 100).toLocaleString("es-CL") : (m / 100).toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
-    let aviso = "";
+    let aviso = "", nubeMsgG = "";
+    (function unirseSala() {
+      const c = new URLSearchParams(location.search).get("sala");
+      if (!c || !window.Nube || !Nube.disponible || !Nube.unirse(c)) return;
+      const u = new URL(location.href); u.searchParams.delete("sala");
+      history.replaceState(null, "", u.pathname + u.search + u.hash);
+      nubeMsgG = "Te uniste a la sala compartida.";
+    })();
+    // Suma gastos de un enlace o de un archivo de respaldo, sin duplicar los que ya están
+    function fusionar(d, origen) {
+      if (!d || typeof d !== "object") return `El ${origen} no es válido.`;
+      if ((d.c === "CLP" || d.c === "EUR") && d.c !== G.moneda && G.gastos.length) return `El ${origen} usa otra moneda que tus gastos: no se sumó nada.`;
+      if (d.c === "CLP" || d.c === "EUR") G.moneda = d.c;
+      (Array.isArray(d.p) ? d.p : []).map(limpiar).filter(Boolean).slice(0, 12).forEach(n => { if (!G.personas.includes(n)) G.personas.push(n); });
+      const ids = new Set(G.gastos.map(x => x.id));
+      let nuevos = 0;
+      (Array.isArray(d.g) ? d.g : []).slice(0, 500).forEach(x => {
+        if (!x || typeof x !== "object") return;
+        const g = { id: String(x.i || "").slice(0, 30), d: String(x.d || "").replace(/[<>]/g, "").slice(0, 60), m: Math.round(+x.m), p: limpiar(x.p),
+          e: (Array.isArray(x.e) ? x.e : []).map(limpiar).filter(n => G.personas.includes(n)), f: String(x.f || "").slice(0, 10) };
+        if (x.x && typeof x.x === "object") {
+          const xx = {};
+          g.e.forEach(n => { const v = Math.round(+x.x[n]); if (v >= 0 && v < 1e11) xx[n] = v; });
+          if (Object.keys(xx).length === g.e.length && g.e.reduce((s, n) => s + xx[n], 0) === g.m) g.x = xx; else return;
+        }
+        if (!g.id || ids.has(g.id) || !g.d || !(g.m > 0 && g.m < 1e11) || !G.personas.includes(g.p) || !g.e.length) return;
+        ids.add(g.id); G.gastos.push(g); nuevos++;
+      });
+      guardar();
+      return nuevos ? `Se sumaron ${nuevos} gasto${nuevos > 1 ? "s" : ""} nuevo${nuevos > 1 ? "s" : ""} desde el ${origen}.` : `El ${origen} no traía gastos nuevos.`;
+    }
     (function importar() {
       const q = new URLSearchParams(location.search).get("g");
       if (!q) return;
-      try {
-        const d = deb64(q);
-        history.replaceState(null, "", location.pathname);
-        if ((d.c === "CLP" || d.c === "EUR") && d.c !== G.moneda && G.gastos.length) { aviso = "El enlace usa otra moneda que tus gastos: no se sumó nada."; return; }
-        if (d.c === "CLP" || d.c === "EUR") G.moneda = d.c;
-        (Array.isArray(d.p) ? d.p : []).map(limpiar).filter(Boolean).slice(0, 12).forEach(n => { if (!G.personas.includes(n)) G.personas.push(n); });
-        const ids = new Set(G.gastos.map(x => x.id));
-        let nuevos = 0;
-        (Array.isArray(d.g) ? d.g : []).slice(0, 500).forEach(x => {
-          const g = { id: String(x.i || "").slice(0, 30), d: String(x.d || "").slice(0, 60), m: Math.round(+x.m), p: limpiar(x.p),
-            e: (Array.isArray(x.e) ? x.e : []).map(limpiar).filter(n => G.personas.includes(n)), f: String(x.f || "").slice(0, 10) };
-          if (x.x && typeof x.x === "object") {
-            const xx = {};
-            g.e.forEach(n => { const v = Math.round(+x.x[n]); if (v >= 0 && v < 1e11) xx[n] = v; });
-            if (Object.keys(xx).length === g.e.length && g.e.reduce((s, n) => s + xx[n], 0) === g.m) g.x = xx; else return;
-          }
-          if (!g.id || ids.has(g.id) || !(g.m > 0 && g.m < 1e11) || !G.personas.includes(g.p) || !g.e.length) return;
-          ids.add(g.id); G.gastos.push(g); nuevos++;
-        });
-        guardar();
-        aviso = nuevos ? `Se sumaron ${nuevos} gasto${nuevos > 1 ? "s" : ""} nuevo${nuevos > 1 ? "s" : ""} desde el enlace.` : "El enlace no traía gastos nuevos.";
-      } catch (e) {}
+      try { history.replaceState(null, "", location.pathname); aviso = fusionar(deb64(q), "enlace"); } catch (e) {}
     })();
+
+    // Estado de guardado: dónde está cada gasto y qué falta subir
+    function estadoG(g) {
+      if (!window.Nube || !Nube.disponible) return "";
+      return " · " + (!Nube.activa() ? "📱 solo en este teléfono" : g.s ? "☁ en la nube ✓" : "⏳ falta subir");
+    }
+    function avisoGuardado() {
+      if (!window.Nube || !Nube.disponible) return "";
+      if (!Nube.activa()) return G.gastos.length ? `<p class="aviso-warn">⚠ Estos gastos solo están guardados en este teléfono. Crea una sala o únete a una arriba para tener copia en la nube.</p>` : "";
+      const pend = G.gastos.filter(g => !g.s).length;
+      return pend ? `<p class="aviso-warn">⏳ ${pend} gasto${pend > 1 ? "s" : ""} sin subir a la nube (¿sin internet?). Se suben solos cuando haya conexión. <button type="button" class="btn ghost" id="g-reintentar">Reintentar ahora</button></p>` : "";
+    }
 
     function calcular() {
       const pago = new Map(G.personas.map(n => [n, 0])), corr = new Map(G.personas.map(n => [n, 0]));
@@ -841,6 +917,8 @@
         <div class="cabeza"><p class="eyebrow">Durante el viaje</p><h2>Gastos compartidos</h2>
           <p>Anota quién pagó cada cosa y entre quiénes se reparte. El sitio calcula cuánto le debe cada uno a quién. Todo queda en este navegador; para juntar lo que anotó cada hermano, usa el enlace de sincronizar.</p></div>
         ${aviso ? `<p class="aviso-ok">${esc(aviso)}</p>` : ""}
+        ${window.Nube && Nube.disponible ? Nube.html(nubeMsgG) : ""}
+        ${avisoGuardado()}
         <details class="g-ayuda"${G.personas.length ? "" : " open"}><summary>¿Cómo funciona?</summary><ol>
           <li><b>Nombres.</b> Escribe quiénes viajan, separados por coma, y toca «Guardar nombres».</li>
           <li><b>Cada gasto.</b> Cuando alguien pague algo, anota qué fue, cuánto, quién pagó y entre quiénes se reparte.</li>
@@ -865,13 +943,108 @@
             return `<tr><td>${esc(n)}</td><td>${mon(c.pago.get(n) || 0)}</td><td>${mon(c.corr.get(n) || 0)}</td><td class="${s > 0 ? "pos" : s < 0 ? "neg" : ""}">${s > 0 ? "+" : ""}${mon(s)}</td></tr>`; }).join("")}</tbody></table>
           <p class="nota-chica">Saldo positivo: le deben plata. Negativo: debe.</p>
           ${c.tr.length ? `<h4>Para dejar todo a mano</h4><ul class="g-pagos">${c.tr.map(([a, b, m]) => `<li><b>${esc(a)}</b> le paga <b>${mon(m)}</b> a <b>${esc(b)}</b></li>`).join("")}</ul>` : G.gastos.length ? `<p class="g-ok">Están a mano. 🎉</p>` : ""}
-          <div class="g-acciones"><button type="button" class="btn ghost" id="g-wsp">💬 Copiar resumen para WhatsApp</button><button type="button" class="btn ghost" id="g-link">🔗 Copiar enlace para sincronizar</button><span id="g-msg2" role="status"></span></div></div>
-        <div class="g-lista"><h3>Gastos anotados (${G.gastos.length})</h3>${G.gastos.length ? `<ul>${[...G.gastos].reverse().map(g => `<li><span><b>${esc(g.d)}</b><small>${esc(g.f)} · pagó ${esc(g.p)} · ${g.x ? "reparto distinto (" + g.e.map(n => esc(n) + " " + mon(g.x[n])).join(", ") + ")" : "entre " + (g.e.length === pp.length ? "todos" : esc(g.e.join(", ")))}</small></span><span class="g-m">${mon(g.m)}</span><button type="button" data-del="${esc(g.id)}" aria-label="Borrar ${esc(g.d)}">×</button></li>`).join("")}</ul>` : `<p class="nota-chica">Todavía no hay gastos.</p>`}</div>`}
+          <div class="g-acciones"><button type="button" class="btn ghost" id="g-wsp">💬 Copiar resumen para WhatsApp</button><button type="button" class="btn ghost" id="g-link">🔗 Copiar enlace para sincronizar</button><button type="button" class="btn ghost" id="g-respaldo">⬇ Descargar respaldo</button><button type="button" class="btn ghost" id="g-csv">📊 Planilla (Excel)</button><label class="btn ghost g-rest">⬆ Restaurar respaldo<input type="file" id="g-file" accept=".json,application/json" hidden></label><span id="g-msg2" role="status"></span></div></div>
+        <div class="g-lista"><h3>Gastos anotados (${G.gastos.length})</h3>${G.gastos.length ? `<ul>${[...G.gastos].reverse().map(g => `<li><span><b>${esc(g.d)}</b><small>${esc(g.f)} · pagó ${esc(g.p)} · ${g.x ? "reparto distinto (" + g.e.map(n => esc(n) + " " + mon(g.x[n])).join(", ") + ")" : "entre " + (g.e.length === pp.length ? "todos" : esc(g.e.join(", ")))}${estadoG(g)}</small></span><span class="g-m">${mon(g.m)}</span><button type="button" data-del="${esc(g.id)}" aria-label="Borrar ${esc(g.d)}">×</button></li>`).join("")}</ul>` : `<p class="nota-chica">Todavía no hay gastos.</p>`}</div>`}
       </section>`;
     }
     pintar();
 
+    // ---- Sala compartida: cada gasto es una entrada propia, así nadie pisa lo de otro ----
+    const kn = n => encodeURIComponent(n).replace(/\./g, "%2E");
+    const dn = k => { try { return decodeURIComponent(k); } catch (e) { return ""; } };
+    const enfocado = () => { const m = $("main"); return !!(document.activeElement && document.activeElement !== document.body && m.contains(document.activeElement) && /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)); };
+    const aNube = g => ({ d: g.d, m: g.m, p: g.p, e: g.e, f: g.f, ...(g.x ? { x: Object.fromEntries(Object.entries(g.x).map(([n, v]) => [kn(n), v])) } : {}) });
+    const deNube = (id, x, personas) => {
+      if (!/^[A-Za-z0-9_-]{1,30}$/.test(id) || !x || typeof x !== "object") return null;
+      const g = { id, d: String(x.d || "").replace(/[<>]/g, "").slice(0, 60), m: Math.round(+x.m), p: limpiar(x.p),
+        e: (Array.isArray(x.e) ? x.e : Object.values(x.e || {})).map(limpiar).filter(n => personas.includes(n)), f: String(x.f || "").slice(0, 10), s: true };
+      if (!g.d || !(g.m > 0 && g.m < 1e11) || !personas.includes(g.p) || !g.e.length) return null;
+      if (x.x && typeof x.x === "object") {
+        const xx = {};
+        Object.entries(x.x).forEach(([k, v]) => { const n = limpiar(dn(k)), c = Math.round(+v); if (g.e.includes(n) && c >= 0 && c < 1e11) xx[n] = c; });
+        if (Object.keys(xx).length === g.e.length && g.e.reduce((s, n) => s + xx[n], 0) === g.m) g.x = xx; else return null;
+      }
+      return g;
+    };
+    const estadoNube = t => { nubeMsgG = t; const el = $("#nube-msg"); if (el) el.textContent = t; };
+    async function empujarCfg() {
+      if (!window.Nube || !Nube.activa()) return;
+      try { await Nube.put("gastos/cfg", { moneda: G.moneda, personas: G.personas }); estadoNube("Sincronizado."); } catch (e) { estadoNube("No se pudo sincronizar (¿sin internet?)."); }
+    }
+    async function empujarGasto(g) {
+      if (!window.Nube || !Nube.activa()) return;
+      try { await Nube.put("gastos/items/" + g.id, aNube(g)); g.s = true; guardar(); estadoNube("Sincronizado."); } catch (e) { estadoNube("No se pudo sincronizar (¿sin internet?)."); }
+    }
+    async function borrarGasto(id) {
+      if (!window.Nube || !Nube.activa()) return;
+      try { await Nube.del("gastos/items/" + id); estadoNube("Sincronizado."); } catch (e) { estadoNube("No se pudo sincronizar (¿sin internet?)."); }
+    }
+    async function traerG() {
+      if (!window.Nube || !Nube.activa()) return;
+      try {
+        const cfg = (await Nube.get("gastos/cfg")) || {}, items = (await Nube.get("gastos/items")) || {};
+        const remotas = (Array.isArray(cfg.personas) ? cfg.personas : Object.values(cfg.personas || {})).map(limpiar).filter(Boolean).slice(0, 12);
+        const personas = [...new Set([...remotas, ...G.personas])].slice(0, 12), antes = JSON.stringify(G);
+        if (!G.gastos.length && (cfg.moneda === "CLP" || cfg.moneda === "EUR")) G.moneda = cfg.moneda;
+        G.personas = personas;
+        // Lo que ya estaba sincronizado y ya no está en la sala, lo borraron otros
+        G.gastos = G.gastos.filter(g => !g.s || Object.prototype.hasOwnProperty.call(items, g.id));
+        for (const g of G.gastos.filter(x => !x.s)) await empujarGasto(g);
+        const ids = new Set(G.gastos.map(g => g.id));
+        Object.entries(items).forEach(([id, x]) => { if (!ids.has(id)) { const g = deNube(id, x, personas); if (g) G.gastos.push(g); } });
+        G.gastos.sort((a, b) => (a.f || "").localeCompare(b.f || "") || a.id.localeCompare(b.id));
+        if (JSON.stringify(remotas) !== JSON.stringify(personas) || cfg.moneda !== G.moneda) await empujarCfg();
+        if (JSON.stringify(G) !== antes) { guardar(); if (!enfocado()) pintar(); }
+        estadoNube("Sincronizado.");
+      } catch (e) { estadoNube("No se pudo sincronizar (¿sin internet?)."); }
+    }
+    if (window.Nube && Nube.disponible) {
+      document.addEventListener("click", e => Nube.click(e, async msg => { nubeMsgG = msg; await traerG(); pintar(); }));
+      setInterval(() => { if (document.visibilityState === "visible") traerG(); }, 10000);
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") traerG(); });
+      if (Nube.activa()) traerG();
+    }
+
     const main = $("main");
+    const descargar = (nombre, tipo, txt) => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([txt], { type: tipo }));
+      a.download = nombre;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    };
+    const hoyTxt = () => new Date().toISOString().slice(0, 10);
+    main.addEventListener("click", e => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.id === "g-respaldo") {
+        const data = { tipo: "rumbo-a-mussy-gastos", c: G.moneda, p: G.personas, g: G.gastos.map(g => ({ i: g.id, d: g.d, m: g.m, p: g.p, e: g.e, f: g.f, x: g.x })) };
+        descargar(`gastos-rumbo-a-mussy-${hoyTxt()}.json`, "application/json", JSON.stringify(data, null, 1));
+        $("#g-msg2").textContent = "Respaldo descargado. Guárdalo en un lugar seguro.";
+      } else if (b.id === "g-csv") {
+        const celda = v => { let s = String(v); if (/^[=+\-@]/.test(s)) s = "'" + s; return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+        const num = m => (m / 100).toFixed(G.moneda === "CLP" ? 0 : 2).replace(".", ",");
+        const c = calcular(), filas = [["Fecha", "Qué fue", "Monto (" + G.moneda + ")", "Pagó", "Entre quiénes", "Reparto"]];
+        G.gastos.forEach(g => filas.push([g.f, g.d, num(g.m), g.p, g.e.join(", "), g.x ? g.e.map(n => n + " " + num(g.x[n])).join(", ") : "partes iguales"]));
+        filas.push([], ["Saldos", "", "", "", "", ""], ["Quién", "Pagó", "Le tocaba", "Saldo", "", ""]);
+        G.personas.forEach(n => filas.push([n, num(c.pago.get(n) || 0), num(c.corr.get(n) || 0), num(c.neto.get(n) || 0)]));
+        descargar(`gastos-rumbo-a-mussy-${hoyTxt()}.csv`, "text/csv;charset=utf-8", "\ufeff" + filas.map(f => f.map(celda).join(";")).join("\r\n") + "\r\n");
+        $("#g-msg2").textContent = "Planilla descargada: ábrela con Excel.";
+      } else if (b.id === "g-reintentar") {
+        $("#g-reintentar").textContent = "Reintentando…"; traerG().then(() => pintar());
+      }
+    });
+    main.addEventListener("change", async e => {
+      if (e.target.id !== "g-file") return;
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      try {
+        if (f.size > 2e6) throw new Error("grande");
+        aviso = fusionar(JSON.parse(await f.text()), "respaldo");
+      } catch (err) { aviso = "No se pudo leer ese archivo de respaldo."; }
+      pintar();
+      if (window.Nube && Nube.activa()) traerG();
+    });
     const copiar = async (txt, msgId, ok) => {
       let hecho = false;
       try { await navigator.clipboard.writeText(txt); hecho = true; } catch (e) {}
@@ -907,7 +1080,7 @@
         nuevo.x = x; nuevo.e = Object.keys(x);
       }
       G.gastos.push(nuevo);
-      guardar(); aviso = ""; pintar();
+      guardar(); aviso = ""; pintar(); empujarGasto(nuevo);
     });
     const limpiarTexto = s => String(s).replace(/[<>]/g, "").trim().slice(0, 60);
     main.addEventListener("click", e => {
@@ -917,9 +1090,9 @@
         const nuevos = [...new Set($("#g-pers").value.split(",").map(limpiar).filter(Boolean))].slice(0, 12);
         const usados = new Set(G.gastos.flatMap(g => [g.p, ...g.e]));
         G.personas = [...nuevos, ...[...usados].filter(n => !nuevos.includes(n))];
-        guardar(); aviso = ""; pintar();
+        guardar(); aviso = ""; pintar(); empujarCfg();
       } else if (b.dataset.del) {
-        if (confirm("¿Borrar este gasto?")) { G.gastos = G.gastos.filter(g => g.id !== b.dataset.del); guardar(); aviso = ""; pintar(); }
+        if (confirm("¿Borrar este gasto?")) { G.gastos = G.gastos.filter(g => g.id !== b.dataset.del); guardar(); aviso = ""; pintar(); borrarGasto(b.dataset.del); }
       } else if (b.id === "g-wsp") {
         const c = calcular(), l = ["*Gastos del viaje* · total " + mon(G.gastos.reduce((s, g) => s + g.m, 0)), ""];
         G.personas.forEach(n => { const s = c.neto.get(n) || 0; l.push(n + ": " + (s > 0 ? "+" : "") + mon(s)); });
@@ -934,7 +1107,7 @@
     main.addEventListener("change", e => {
       if (e.target.id === "g-moneda") {
         if (G.gastos.length && !confirm("Ya hay gastos anotados. Cambiar la moneda no los convierte: los montos quedarán igual. ¿Seguir?")) { e.target.value = G.moneda; return; }
-        G.moneda = e.target.value; guardar(); aviso = ""; pintar();
+        G.moneda = e.target.value; guardar(); aviso = ""; pintar(); empujarCfg();
       }
     });
   }
