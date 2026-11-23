@@ -103,7 +103,7 @@ window.crearArmador = function (raiz, alCambiar) {
     });
     const unTramo = (a, b) => {
       const d = Math.round(km(a.c, b.c) * 1.25);
-      const auto = [a.id, b.id].includes("beaune") || a.id === "mussy";
+      const auto = ([a.id, b.id].includes("beaune") || a.id === "mussy") && d <= 450; // en auto solo los trayectos cortos desde/hacia Mussy y Beaune
       const tipo = auto ? "Auto" : d > 850 ? "Vuelo" : "Tren";
       return { de: a.id, a: b.id, km: d, tipo, horas: tipo === "Vuelo" ? 2 : Math.round((d / 140 + 0.3) * 2) / 2,
         eur: tipo === "Vuelo" ? 85 : tipo === "Auto" ? 0 : Math.round(12 + d * 0.12) };
@@ -206,7 +206,28 @@ window.crearArmador = function (raiz, alCambiar) {
   }
   const todas = () => [...K.rutas, ...(K.finalistas || [])];
   function cargar(id) { s = desdeRuta(todas().find(x => x.id === id)); guardar(); render(); }
+  // Arma una ruta con las ciudades más votadas. puntos = { ciudadId: puntaje }.
+  // Respeta los días, la llegada y la salida, y un tope de traslado (~1,3 h por noche) y de ciudades.
+  function armarVotados(puntos) {
+    if (!Object.values(puntos).some(v => v > 0)) return { ok: false };
+    const dias = ruta().dias, ent = s.entrada || "paris", sal = s.salida || "ultima";
+    const forzadas = [...new Set([ent, sal !== "ultima" ? sal : null].filter(Boolean))];
+    const candidatas = Object.keys(C).filter(id => !C[id].fija && !forzadas.includes(id) && (puntos[id] || 0) > 0)
+      .sort((a, b) => puntos[b] - puntos[a] || C[a].prio - C[b].prio);
+    const armaEstado = ids => {
+      const paises = [...new Set([...ids, "mussy"].map(id => C[id].pais))];
+      const fuera = Object.keys(C).filter(id => paises.includes(C[id].pais) && !C[id].fija && !ids.includes(id));
+      return { ruta: null, entrada: ent, salida: sal, paises, fuera, noches: {}, dias, orden: null };
+    };
+    const horas = r => [...r.tramos, ...(r.regreso ? [r.regreso] : [])].reduce((tt, x) => tt + x.horas, 0);
+    const cabe = ids => { const r = ruta(armaEstado(ids)); return !r.quitadas.length && horas(r) <= 1.3 * (dias - 1) && r.paradas.filter(p => p.id !== "beaune").length <= 12; };
+    let elegidas = [...forzadas];
+    const sinCupo = [];
+    candidatas.forEach(id => { const prueba = [...elegidas, id]; if (cabe(prueba)) elegidas = prueba; else sinCupo.push(id); });
+    s = armaEstado(elegidas); guardar(); render();
+    return { ok: true, usadas: elegidas, sinCupo };
+  }
   const estado = () => ({ paises: s.paises, fuera: s.fuera, noches: s.noches, dias: ruta().dias, orden: s.orden || null, entrada: s.entrada || "paris", salida: s.salida || "ultima" });
   render();
-  return { estado, mover, noches, ruta: () => ruta(), rutaArmada: id => ruta(desdeRuta(todas().find(x => x.id === id))), cargar, rutas: K.rutas, C };
+  return { estado, armarVotados, mover, noches, ruta: () => ruta(), rutaArmada: id => ruta(desdeRuta(todas().find(x => x.id === id))), cargar, rutas: K.rutas, C };
 };

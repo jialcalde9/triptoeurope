@@ -165,7 +165,7 @@
         const nom = limpiar(d.n);
         if (nom && nom !== VT.yo && d.v && typeof d.v === "object") {
           const v = {};
-          Object.entries(d.v).forEach(([k, x]) => { if (ok(k) && (x === 1 || x === -1)) v[k] = x; });
+          Object.entries(d.v).forEach(([k, x]) => { if (ok(k) && (x === 1 || x === -1 || x === 2)) v[k] = x; });
           VT.personas[kp(nom)] = v; guardarVotos();
         }
         history.replaceState(null, "", location.pathname + location.hash);
@@ -409,29 +409,57 @@
       if (e.target.id === "a-fecha") { AN.fecha = e.target.value; guardarAN(); pintarAntes(); }
       else if (e.target.dataset && e.target.dataset.chk) { AN.hechos[e.target.dataset.chk] = e.target.checked; guardarAN(); }
     });
+    const PTS = { "2": 3, "1": 1, "-1": -2 };
+    let msgArmar = "";
+    const vtAbiertos = new Map();
+    document.addEventListener("toggle", e => { if (e.target.dataset && e.target.dataset.vtp) vtAbiertos.set(e.target.dataset.vtp, e.target.open); }, true);
+    const puntosCiudades = () => {
+      const p = {};
+      Object.values(VT.personas).forEach(v => Object.entries(v || {}).forEach(([id, x]) => { p[id] = (p[id] || 0) + (PTS[x] || 0); }));
+      return p;
+    };
     function pintarVotos() {
       const mios = VT.personas[kp(VT.yo)] || {};
+      const botones = id => `<button type="button" data-v="2" data-id="${id}" aria-pressed="${mios[id] === 2}" aria-label="Sí o sí" title="Sí o sí">⭐</button><button type="button" data-v="1" data-id="${id}" aria-pressed="${mios[id] === 1}" aria-label="Me gusta" title="Me gusta">👍</button><button type="button" data-v="-1" data-id="${id}" aria-pressed="${mios[id] === -1}" aria-label="Descartar" title="Descartar">👎</button>`;
+      const quienes = id => Object.entries(VT.personas).filter(([, v]) => v && v[id]).map(([k, v]) => [k.slice(2), v[id]]);
+      const resumen = id => {
+        const q = quienes(id), de = n => q.filter(x => x[1] === n).map(x => x[0]), es = de(2), si = de(1), no = de(-1);
+        return [es.length ? `⭐ ${es.length} (${esc(es.join(", "))})` : "", si.length ? `👍 ${si.length} (${esc(si.join(", "))})` : "", no.length ? `👎 ${no.length} (${esc(no.join(", "))})` : ""].filter(Boolean).join(" · ");
+      };
       document.querySelectorAll("[data-voto]").forEach(el => {
-        const id = el.dataset.voto, quien = Object.entries(VT.personas).filter(([, v]) => v && v[id]).map(([k, v]) => [k.slice(2), v[id]]);
-        const si = quien.filter(x => x[1] === 1).map(x => x[0]), no = quien.filter(x => x[1] === -1).map(x => x[0]);
-        el.innerHTML = `<span>¿Vamos?</span><button type="button" data-v="1" data-id="${id}" aria-pressed="${mios[id] === 1}" aria-label="A favor">👍</button><button type="button" data-v="-1" data-id="${id}" aria-pressed="${mios[id] === -1}" aria-label="En contra">👎</button>` +
-          (quien.length ? `<small>${si.length ? `👍 ${si.length} (${esc(si.join(", "))})` : ""}${si.length && no.length ? " · " : ""}${no.length ? `👎 ${no.length} (${esc(no.join(", "))})` : ""}</small>` : "");
+        const id = el.dataset.voto, r = resumen(id);
+        el.innerHTML = `<span>¿Vamos?</span>${botones(id)}${r ? `<small>${r}</small>` : ""}`;
       });
-      // Ranking de las ciudades de la ruta según los votos
-      const filas = (rutaActual ? rutaActual.paradas.filter(x => x.id !== "beaune") : []).map(x => {
-        const q = Object.entries(VT.personas).map(([k, v]) => [k.slice(2), v && v[x.id]]).filter(y => y[1]);
-        return { n: x.ciudad.nombre, id: x.id, si: q.filter(y => y[1] === 1).length, no: q.filter(y => y[1] === -1).length, votos: q.length };
-      });
-      const con = filas.filter(f => f.votos).sort((a, b) => (b.si - b.no) - (a.si - a.no) || b.si - a.si);
-      const sin = filas.filter(f => !f.votos);
-      const unanimes = con.filter(f => !f.no).map(f => f.n), polemicas = con.filter(f => f.no).map(f => f.n);
-      const ranking = con.length ? `<div class="ranking"><h3>Ciudades más votadas</h3><ol>${con.map(f => `<li><a href="#parada-${f.id}">${esc(f.n)}</a><span class="${f.si - f.no < 0 ? "neg" : ""}">${f.si - f.no > 0 ? "+" : ""}${f.si - f.no}</span><small>👍 ${f.si} · 👎 ${f.no}</small></li>`).join("")}</ol>
-        ${unanimes.length ? `<p>✅ <b>Todos a favor:</b> ${unanimes.map(esc).join(", ")}</p>` : ""}
-        ${polemicas.length ? `<p>⚖️ <b>Para conversar</b> (tienen votos en contra): ${polemicas.map(esc).join(", ")}</p>` : ""}
-        ${sin.length ? `<p class="votos-nota">Sin votos todavía: ${sin.map(f => esc(f.n)).join(", ")}</p>` : ""}</div>` : "";
+      // Ranking de todas las ciudades con votos, estén o no en la ruta
+      const enRuta = rutaActual ? rutaActual.ciudades : new Set(), pts = puntosCiudades();
+      const filas = Object.keys(pts).filter(id => ciudad(id) && quienes(id).length).map(id => {
+        const q = quienes(id), c = n => q.filter(y => y[1] === n).length;
+        return { id, n: ciudad(id).nombre, estrella: c(2), si: c(1), no: c(-1), pts: pts[id] };
+      }).sort((a, b) => b.pts - a.pts || b.estrella - a.estrella);
+      const sin = (rutaActual ? rutaActual.paradas.filter(x => !x.ciudad.fija) : []).filter(x => !quienes(x.id).length).map(x => x.ciudad.nombre);
+      const estrellas = filas.filter(f => f.estrella).map(f => f.n), polemicas = filas.filter(f => f.no && (f.estrella || f.si)).map(f => f.n);
+      const ranking = filas.length ? `<div class="ranking"><h3>Ciudades más votadas</h3><ol>${filas.slice(0, 10).map(f => `<li>${enRuta.has(f.id) ? `<a href="#parada-${f.id}">${esc(f.n)}</a>` : `<span>${esc(f.n)}</span>`}<span class="${f.pts < 0 ? "neg" : ""}">${f.pts > 0 ? "+" : ""}${f.pts}</span><small>⭐ ${f.estrella} · 👍 ${f.si} · 👎 ${f.no}</small></li>`).join("")}</ol>
+        ${estrellas.length ? `<p>⭐ <b>Sí o sí:</b> ${estrellas.map(esc).join(", ")}</p>` : ""}
+        ${polemicas.length ? `<p>⚖️ <b>Para conversar</b> (a unos les gustan y otros las descartan): ${polemicas.map(esc).join(", ")}</p>` : ""}
+        ${sin.length ? `<p class="votos-nota">De tu ruta actual, sin votos todavía: ${sin.map(esc).join(", ")}</p>` : ""}
+        <p class="votos-nota">Puntaje: ⭐ vale 3, 👍 vale 1 y 👎 resta 2.</p></div>` : "";
+      // Todas las ciudades por país, para votar también las que no están en la ruta
+      const lista = CAT.paises.map(pa => {
+        const ids = Object.keys(CAT.ciudades).filter(id => ciudad(id) && !CAT.ciudades[id].fija && (CAT.ciudades[id].pais || ciudad(id).pais) === pa.id);
+        if (!ids.length) return "";
+        const abierto = vtAbiertos.has(pa.id) ? vtAbiertos.get(pa.id) : !!(rutaActual && rutaActual.paises.includes(pa.id));
+        return `<details class="vt-pais" data-vtp="${pa.id}"${abierto ? " open" : ""}><summary>${esc(pa.nombre)}<small>${ids.filter(id => quienes(id).length).length} de ${ids.length} votadas</small></summary><ul>${ids.map(id => {
+          const r = resumen(id);
+          return `<li><span class="vt-n">${esc(ciudad(id).nombre)}${enRuta.has(id) ? " <i>en la ruta</i>" : ""}</span><span class="vt-b">${botones(id)}</span>${r ? `<small>${r}</small>` : ""}</li>`;
+        }).join("")}</ul></details>`;
+      }).join("");
       const otros = Object.keys(VT.personas).map(k => k.slice(2));
       $("#votos").innerHTML = `<div class="votos-fila"><label>Tu nombre <input id="v-nombre" maxlength="20" placeholder="Ej: Juan" value="${esc(VT.yo)}"></label><span id="v-msg" aria-live="polite"></span></div>
-        <p class="votos-nota">Pon tu nombre y vota 👍 o 👎 en cada ciudad de la ruta (abajo). Luego usa "Copiar enlace de esta ruta": el enlace lleva tu ruta y tus votos, y al abrirlo tus hermanos los ven y suman los suyos.</p>
+        <p class="votos-nota">Pon tu nombre y marca cada ciudad: ⭐ sí o sí, 👍 me gusta, 👎 descartar. Luego usa «Copiar enlace de esta ruta»: el enlace lleva tus votos, y al abrirlo tus hermanos los ven y suman los suyos.</p>
+        <div class="vt-lista"><h3>Votar ciudades</h3>${lista}</div>
+        <div class="vt-armar"><button type="button" class="btn" id="v-armar">🧭 Armar ruta con lo más votado</button>
+          <p class="votos-nota">Arma una ruta con las ciudades de mayor puntaje que quepan en los días elegidos, con la llegada y salida que tengas puestas y sin demasiado traslado. Después puedes ajustarla.</p>
+          <p class="vt-msg" id="v-armar-msg" aria-live="polite">${esc(msgArmar)}</p></div>
         ${ranking}
         ${otros.length ? `<p class="votos-quienes">Votos de: ${otros.map(n => `<span class="chip-v">${esc(n)}${n === VT.yo ? "" : ` <button type="button" data-quitar="${esc(n)}" aria-label="Quitar votos de ${esc(n)}">×</button>`}</span>`).join(" ")}</p>` : ""}`;
     }
@@ -445,6 +473,12 @@
         guardarVotos(); pintarVotos();
       } else if (b.dataset.quitar) {
         delete VT.personas[kp(b.dataset.quitar)]; guardarVotos(); pintarVotos();
+      } else if (b.id === "v-armar") {
+        const res = armador.armarVotados(puntosCiudades()), nom = id => ciudad(id).nombre;
+        msgArmar = !res.ok ? "Todavía no hay ciudades con puntaje positivo: vota con ⭐ o 👍."
+          : "Listo, ruta armada con " + res.usadas.length + " ciudades: " + res.usadas.map(nom).join(", ") + "."
+            + (res.sinCupo.length ? " No cupieron: " + res.sinCupo.slice(0, 6).map(nom).join(", ") + ". Prueba con más días o cambiando la llegada y la salida." : "");
+        pintarVotos();
       }
     });
     document.addEventListener("change", e => {

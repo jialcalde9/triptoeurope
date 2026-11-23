@@ -581,3 +581,23 @@ html { scroll-padding-top: calc(var(--top-h, 60px) + 52px); }
 @media (max-width: 860px) { .rf-grid { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .rf-pc { grid-template-columns: 1fr; } .rf-datos > div { grid-template-columns: 1fr; gap: 2px; } .rf header { grid-template-columns: auto 1fr; } .rf-costo { grid-column: 1 / -1; text-align: left; } }
 @media print { .rf { break-inside: avoid; } .rf button { display: none; } }
+
+/* Votar ciudades con ⭐ y armar ruta */
+.vt-lista { display: grid; gap: 8px; }
+.vt-lista h3 { margin: 0; }
+.vt-pais { border: 1px solid var(--line); border-radius: 12px; padding: 6px 14px; background: var(--bg); }
+.vt-pais summary { cursor: pointer; font-weight: 700; display: flex; align-items: baseline; gap: 8px; padding: 6px 0; }
+.vt-pais summary small { margin-left: auto; color: var(--muted); font-weight: 400; font-size: .78rem; }
+.vt-pais ul { list-style: none; margin: 4px 0 8px; padding: 0; }
+.vt-pais li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); }
+.vt-pais li small { grid-column: 1 / -1; color: var(--muted); font-size: .78rem; }
+.vt-n i { display: inline-block; white-space: nowrap; font-style: normal; font-size: .68rem; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 7px; margin-left: 6px; }
+.vt-b { display: inline-flex; gap: 4px; }
+.vt-b button, .voto button { min-width: 36px; }
+.vt-b button { height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: .95rem; }
+.vt-b button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.vt-armar { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.vt-armar .btn { width: fit-content; }
+.vt-msg { margin: 0; font-weight: 600; }
+.vt-msg:empty { display: none; }
+@media (max-width: 600px) { .vt-b button { min-width: 40px; height: 36px; } }
