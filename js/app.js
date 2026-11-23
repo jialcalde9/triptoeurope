@@ -708,6 +708,11 @@
         (Array.isArray(d.g) ? d.g : []).slice(0, 500).forEach(x => {
           const g = { id: String(x.i || "").slice(0, 30), d: String(x.d || "").slice(0, 60), m: Math.round(+x.m), p: limpiar(x.p),
             e: (Array.isArray(x.e) ? x.e : []).map(limpiar).filter(n => G.personas.includes(n)), f: String(x.f || "").slice(0, 10) };
+          if (x.x && typeof x.x === "object") {
+            const xx = {};
+            g.e.forEach(n => { const v = Math.round(+x.x[n]); if (v >= 0 && v < 1e11) xx[n] = v; });
+            if (Object.keys(xx).length === g.e.length && g.e.reduce((s, n) => s + xx[n], 0) === g.m) g.x = xx; else return;
+          }
           if (!g.id || ids.has(g.id) || !(g.m > 0 && g.m < 1e11) || !G.personas.includes(g.p) || !g.e.length) return;
           ids.add(g.id); G.gastos.push(g); nuevos++;
         });
@@ -721,7 +726,7 @@
       G.gastos.forEach(g => {
         const n = g.e.length, base = Math.floor(g.m / n), resto = g.m - base * n;
         pago.set(g.p, (pago.get(g.p) || 0) + g.m);
-        g.e.forEach((nom, i) => corr.set(nom, (corr.get(nom) || 0) + base + (i < resto ? 1 : 0)));
+        g.e.forEach((nom, i) => corr.set(nom, (corr.get(nom) || 0) + (g.x ? g.x[nom] : base + (i < resto ? 1 : 0))));
       });
       const neto = new Map(G.personas.map(n => [n, (pago.get(n) || 0) - (corr.get(n) || 0)]));
       const deb = [...neto].filter(x => x[1] < 0).map(x => [x[0], -x[1]]).sort((a, b) => b[1] - a[1]);
@@ -744,6 +749,13 @@
         <div class="cabeza"><p class="eyebrow">Durante el viaje</p><h2>Gastos compartidos</h2>
           <p>Anota quién pagó cada cosa y entre quiénes se reparte. El sitio calcula cuánto le debe cada uno a quién. Todo queda en este navegador; para juntar lo que anotó cada hermano, usa el enlace de sincronizar.</p></div>
         ${aviso ? `<p class="aviso-ok">${esc(aviso)}</p>` : ""}
+        <details class="g-ayuda"${G.personas.length ? "" : " open"}><summary>¿Cómo funciona?</summary><ol>
+          <li><b>Nombres.</b> Escribe quiénes viajan, separados por coma, y toca «Guardar nombres».</li>
+          <li><b>Cada gasto.</b> Cuando alguien pague algo, anota qué fue, cuánto, quién pagó y entre quiénes se reparte.</li>
+          <li><b>Si no se reparte parejo.</b> Por ejemplo, en un restaurante donde uno pidió más: elige «Cada uno pagó una parte distinta» y escribe cuánto le toca a cada persona. Los montos tienen que sumar la cuenta.</li>
+          <li><b>Las cuentas.</b> Abajo ves el saldo de cada uno (verde: le deben; rojo: debe) y quién le paga a quién para quedar a mano.</li>
+          <li><b>Juntar con tus hermanos.</b> Tus gastos quedan solo en este teléfono. Toca «Copiar enlace para sincronizar» y mándaselo: al abrirlo, el sitio suma lo que les falte, sin repetir lo que ya tenían.</li>
+          <li><b>Consejo.</b> Lo más simple es que una sola persona anote todos los gastos y comparta el resumen por WhatsApp.</li></ol></details>
         <div class="g-fila"><label>Quiénes viajan <input id="g-pers" placeholder="Ej: Juan, Pedro, Ana" value="${esc(pp.join(", "))}"></label>
           <button type="button" class="btn ghost" id="g-guardar-pers">Guardar nombres</button>
           <label>Moneda <select id="g-moneda"><option value="EUR"${G.moneda === "EUR" ? " selected" : ""}>Euros (€)</option><option value="CLP"${G.moneda === "CLP" ? " selected" : ""}>Pesos chilenos</option></select></label></div>
@@ -753,6 +765,8 @@
           <label>Monto <input id="g-monto" inputmode="decimal" placeholder="0" required></label>
           <label>Pagó <select id="g-pago">${pp.map(n => `<option>${esc(n)}</option>`).join("")}</select></label></div>
           <fieldset class="g-entre"><legend>Se reparte entre</legend>${pp.map(n => `<label class="g-chk"><input type="checkbox" name="g-ent" value="${esc(n)}" checked> ${esc(n)}</label>`).join("")}</fieldset>
+          <label class="g-modo">Cómo se reparte <select id="g-modo"><option value="iguales">En partes iguales</option><option value="x">Cada uno pagó una parte distinta</option></select></label>
+          <div class="g-x" id="g-x" hidden>${pp.map(n => `<label data-xn="${esc(n)}">${esc(n)} <input inputmode="decimal" data-x="${esc(n)}" placeholder="0"></label>`).join("")}<p class="nota-chica" id="g-falta"></p></div>
           <button class="btn" type="submit">Agregar gasto</button><span id="g-msg" role="status"></span></form>
         <div class="g-saldos"><h3>Cómo van las cuentas <small>Total gastado: ${mon(total)}</small></h3>
           <table><thead><tr><th>Quién</th><th>Pagó</th><th>Le tocaba</th><th>Saldo</th></tr></thead><tbody>${pp.map(n => { const s = c.neto.get(n) || 0;
@@ -760,7 +774,7 @@
           <p class="nota-chica">Saldo positivo: le deben plata. Negativo: debe.</p>
           ${c.tr.length ? `<h4>Para dejar todo a mano</h4><ul class="g-pagos">${c.tr.map(([a, b, m]) => `<li><b>${esc(a)}</b> le paga <b>${mon(m)}</b> a <b>${esc(b)}</b></li>`).join("")}</ul>` : G.gastos.length ? `<p class="g-ok">Están a mano. 🎉</p>` : ""}
           <div class="g-acciones"><button type="button" class="btn ghost" id="g-wsp">💬 Copiar resumen para WhatsApp</button><button type="button" class="btn ghost" id="g-link">🔗 Copiar enlace para sincronizar</button><span id="g-msg2" role="status"></span></div></div>
-        <div class="g-lista"><h3>Gastos anotados (${G.gastos.length})</h3>${G.gastos.length ? `<ul>${[...G.gastos].reverse().map(g => `<li><span><b>${esc(g.d)}</b><small>${esc(g.f)} · pagó ${esc(g.p)} · entre ${g.e.length === pp.length ? "todos" : esc(g.e.join(", "))}</small></span><span class="g-m">${mon(g.m)}</span><button type="button" data-del="${esc(g.id)}" aria-label="Borrar ${esc(g.d)}">×</button></li>`).join("")}</ul>` : `<p class="nota-chica">Todavía no hay gastos.</p>`}</div>`}
+        <div class="g-lista"><h3>Gastos anotados (${G.gastos.length})</h3>${G.gastos.length ? `<ul>${[...G.gastos].reverse().map(g => `<li><span><b>${esc(g.d)}</b><small>${esc(g.f)} · pagó ${esc(g.p)} · ${g.x ? "reparto distinto (" + g.e.map(n => esc(n) + " " + mon(g.x[n])).join(", ") + ")" : "entre " + (g.e.length === pp.length ? "todos" : esc(g.e.join(", ")))}</small></span><span class="g-m">${mon(g.m)}</span><button type="button" data-del="${esc(g.id)}" aria-label="Borrar ${esc(g.d)}">×</button></li>`).join("")}</ul>` : `<p class="nota-chica">Todavía no hay gastos.</p>`}</div>`}
       </section>`;
     }
     pintar();
@@ -772,13 +786,35 @@
       if (!hecho) prompt("Copia este texto:", txt);
       const m = $("#" + msgId); if (m) m.textContent = hecho ? ok : "";
     };
+    function repartoUI() {
+      const modo = $("#g-modo");
+      if (!modo) return;
+      const custom = modo.value === "x", x = $("#g-x");
+      x.hidden = !custom;
+      const marcados = new Set([...main.querySelectorAll('[name="g-ent"]:checked')].map(c => c.value));
+      x.querySelectorAll("[data-xn]").forEach(l => { l.hidden = !marcados.has(l.dataset.xn); });
+      if (!custom) return;
+      const num = v => Math.round(parseFloat(String(v || "0").replace(",", ".")) * 100) || 0;
+      const suma = [...x.querySelectorAll("[data-x]")].filter(i => marcados.has(i.dataset.x)).reduce((s, i) => s + num(i.value), 0), dif = num($("#g-monto").value) - suma;
+      $("#g-falta").textContent = dif === 0 ? "Los montos cuadran con la cuenta." : dif > 0 ? "Falta repartir " + mon(dif) + "." : "Te pasaste por " + mon(-dif) + ".";
+    }
+    main.addEventListener("input", e => { if (e.target.id === "g-monto" || e.target.dataset.x !== undefined) repartoUI(); });
+    main.addEventListener("change", e => { if (e.target.id === "g-modo" || e.target.name === "g-ent") repartoUI(); });
     main.addEventListener("submit", e => {
       if (e.target.id !== "g-form") return;
       e.preventDefault();
       const desc = limpiarTexto($("#g-desc").value), monto = Math.round(parseFloat($("#g-monto").value.replace(",", ".")) * 100);
       const ent = [...main.querySelectorAll('[name="g-ent"]:checked')].map(x => x.value);
       if (!desc || !(monto > 0) || !ent.length) { $("#g-msg").textContent = "Revisa: qué fue, un monto mayor a cero y al menos una persona."; return; }
-      G.gastos.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), d: desc, m: monto, p: $("#g-pago").value, e: ent, f: new Date().toISOString().slice(0, 10) });
+      const nuevo = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), d: desc, m: monto, p: $("#g-pago").value, e: ent, f: new Date().toISOString().slice(0, 10) };
+      if ($("#g-modo").value === "x") {
+        const x = {};
+        ent.forEach(n => { const i = [...main.querySelectorAll("[data-x]")].find(c => c.dataset.x === n); const v = Math.round(parseFloat(((i && i.value) || "0").replace(",", ".")) * 100) || 0; if (v > 0) x[n] = v; });
+        const suma = Object.values(x).reduce((s, v) => s + v, 0);
+        if (suma !== monto) { $("#g-msg").textContent = "Los montos de cada uno suman " + mon(suma) + " y la cuenta es de " + mon(monto) + "."; return; }
+        nuevo.x = x; nuevo.e = Object.keys(x);
+      }
+      G.gastos.push(nuevo);
       guardar(); aviso = ""; pintar();
     });
     const limpiarTexto = s => String(s).replace(/[<>]/g, "").trim().slice(0, 60);
@@ -799,7 +835,7 @@
         c.tr.forEach(([a, bb, m]) => l.push(a + " le paga " + mon(m) + " a " + bb));
         copiar(l.join("\n"), "g-msg2", "¡Resumen copiado!");
       } else if (b.id === "g-link") {
-        const data = { c: G.moneda, p: G.personas, g: G.gastos.map(g => ({ i: g.id, d: g.d, m: g.m, p: g.p, e: g.e, f: g.f })) };
+        const data = { c: G.moneda, p: G.personas, g: G.gastos.map(g => ({ i: g.id, d: g.d, m: g.m, p: g.p, e: g.e, f: g.f, x: g.x })) };
         copiar(location.origin + location.pathname + "?g=" + b64(data), "g-msg2", "¡Enlace copiado! Al abrirlo, los demás suman tus gastos a los suyos.");
       }
     });

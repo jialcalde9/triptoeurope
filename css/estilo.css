@@ -545,3 +545,10 @@ html { scroll-padding-top: calc(var(--top-h, 60px) + 52px); }
 #g-msg { color: var(--rouge); font-weight: 600; font-size: .9rem; margin-left: 10px; }
 #g-msg2 { color: var(--panorama); font-weight: 600; font-size: .9rem; }
 @media (max-width: 640px) { .g-campos { grid-template-columns: 1fr; } }
+
+.gastos [hidden] { display: none !important; }
+.g-ayuda { border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; background: var(--surface); }
+.g-ayuda > summary { cursor: pointer; font-weight: 700; color: var(--accent); }
+.g-ayuda ol { margin: 10px 0 4px; padding-left: 20px; display: grid; gap: 8px; font-size: .93rem; }
+.g-x { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 12px; border: 1px dashed var(--line); border-radius: 12px; }
+.g-x .nota-chica { grid-column: 1 / -1; margin: 0; font-weight: 600; }
