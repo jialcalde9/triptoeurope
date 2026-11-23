@@ -508,3 +508,40 @@ html { scroll-padding-top: calc(var(--top-h, 60px) + 52px); }
   html { scroll-padding-top: 60px; }
   .parada { scroll-margin-top: 64px; }
 }
+
+/* Moverse y cuidarse */
+.viaje-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.viaje-grid h3 { margin: 0 0 8px; }
+.viaje-grid ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.viaje-grid li { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: .92rem; }
+.viaje-grid li b { display: block; margin-bottom: 2px; }
+@media (max-width: 760px) { .viaje-grid { grid-template-columns: 1fr; } }
+/* Gastos compartidos */
+.gastos { display: grid; gap: 22px; }
+.g-fila { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; }
+.gastos label { display: grid; gap: 4px; font-weight: 600; font-size: .9rem; }
+.gastos input:not([type="checkbox"]), .gastos select { font: inherit; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 0; }
+#g-pers { width: min(22em, 100%); }
+.g-form, .g-saldos, .g-lista { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: var(--surface); display: grid; gap: 12px; }
+.g-form h3, .g-saldos h3, .g-lista h3 { margin: 0; }
+.g-campos { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; }
+.g-entre { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.g-entre legend { font-weight: 600; font-size: .9rem; padding: 0; margin-bottom: 6px; }
+.g-chk { display: inline-flex !important; grid-template-columns: none !important; align-items: center; gap: 6px !important; font-weight: 500 !important; }
+.g-saldos small { color: var(--muted); font-weight: 400; margin-left: 8px; font-size: .85rem; }
+.g-saldos table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.g-saldos th, .g-saldos td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.g-saldos th { color: var(--muted); font-size: .8rem; }
+.g-saldos td.pos { color: var(--panorama); font-weight: 700; } .g-saldos td.neg { color: var(--rouge); font-weight: 700; }
+.g-saldos h4 { margin: 4px 0 0; }
+.g-pagos { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.g-ok { margin: 0; font-weight: 700; color: var(--panorama); }
+.g-acciones { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.g-lista ul { list-style: none; margin: 0; padding: 0; display: grid; }
+.g-lista li { display: grid; grid-template-columns: 1fr auto 30px; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.g-lista small { display: block; color: var(--muted); font-size: .8rem; }
+.g-m { font-family: var(--font-mono); font-weight: 600; }
+.g-lista li button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); cursor: pointer; }
+#g-msg { color: var(--rouge); font-weight: 600; font-size: .9rem; margin-left: 10px; }
+#g-msg2 { color: var(--panorama); font-weight: 600; font-size: .9rem; }
+@media (max-width: 640px) { .g-campos { grid-template-columns: 1fr; } }

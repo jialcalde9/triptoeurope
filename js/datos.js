@@ -567,7 +567,7 @@ window.VIAJE = {
       { id: "louvre", n: "Museo del Louvre", ciudad: "paris", eur: 32, rec: true, basica: true },
       { id: "orsay", n: "Museo de Orsay", ciudad: "paris", eur: 16 },
       { id: "eiffel", n: "Torre Eiffel, cima en ascensor", ciudad: "paris", eur: 36, rec: true },
-      { id: "versalles", n: "Versalles, pasaporte", ciudad: "paris", eur: 32, rec: true },
+      { id: "versalles", n: "Versalles, pasaporte (25 € de nov. a mar., 35 € de abr. a oct.)", ciudad: "paris", eur: 35, rec: true },
       { id: "notredame", n: "Torres de Notre-Dame", ciudad: "paris", eur: 16 },
       { id: "alesia", n: "MuséoParc Alésia", ciudad: "mussy", eur: 12, rec: true, basica: true },
       { id: "fontenay", n: "Abadía de Fontenay", ciudad: "mussy", eur: 13, rec: true },
@@ -582,7 +582,8 @@ window.VIAJE = {
       { id: "vaticano", n: "Museos Vaticanos y Capilla Sixtina", ciudad: "roma", eur: 25, rec: true, basica: true },
       { id: "sagrada", n: "Sagrada Familia con torre", ciudad: "barcelona", eur: 36, rec: true, basica: true },
       { id: "guell", n: "Park Güell", ciudad: "barcelona", eur: 18 },
-      { id: "batllo", n: "Casa Batlló", ciudad: "barcelona", eur: 35 },
+      { id: "batllo", n: "Casa Batlló (desde 29 €, con exposición 37 €)", ciudad: "barcelona", eur: 37 },
+      { id: "alhambra", n: "Alhambra y Generalife (reservar con meses)", ciudad: "granada", eur: 22 },
       { id: "prado", n: "Museo del Prado", ciudad: "madrid", eur: 15, rec: true }
     ],
     perfiles: {

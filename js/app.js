@@ -50,7 +50,7 @@
     h.className = "top";
     h.innerHTML = `<div class="wrap top-in">
       <a class="logo" href="${BASE}"><span class="logo-mark" aria-hidden="true"></span>${esc(V.titulo)}</a>
-      <nav aria-label="Secciones">${links.map(enlace).join("")}${mas}${enlace(["presupuesto", "Presupuesto", `${BASE}#presupuesto`])}</nav>
+      <nav aria-label="Secciones">${links.map(enlace).join("")}${mas}${enlace(["gastos", "Gastos", `${BASE}gastos/`])}${enlace(["presupuesto", "Presupuesto", `${BASE}#presupuesto`])}</nav>
       <button class="tema" id="btn-tema" type="button" aria-label="Cambiar tema claro u oscuro">◐</button>
     </div>`;
     body.prepend(h);
@@ -678,11 +678,195 @@
       ["La cuenta", "Se pide con «la cuenta, por favor»; la propina no es obligatoria", ""],
       ["Pronunciación", "La «c» antes de e/i y la «z» suenan como «th» en inglés (Barcelona, Zaragoza)", ""]]]
   };
+  // ---------- Gastos compartidos (todo se guarda en este navegador; se sincroniza con un enlace) ----------
+  function gastos() {
+    document.title = `Gastos · ${V.titulo}`;
+    const KG = "rm-gastos";
+    const limpiar = n => String(n || "").replace(/[^\p{L}\p{N} ._-]/gu, "").trim().slice(0, 20);
+    const b64 = o => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const deb64 = q => JSON.parse(decodeURIComponent(escape(atob(q.replace(/-/g, "+").replace(/_/g, "/")))));
+    let G = { moneda: "EUR", personas: [], gastos: [] };
+    try {
+      const g = JSON.parse(localStorage.getItem(KG));
+      if (g && Array.isArray(g.personas) && Array.isArray(g.gastos)) G = { moneda: g.moneda === "CLP" ? "CLP" : "EUR", personas: g.personas.map(limpiar).filter(Boolean), gastos: g.gastos };
+    } catch (e) {}
+    const guardar = () => { try { localStorage.setItem(KG, JSON.stringify(G)); } catch (e) {} };
+    // Los montos se guardan en centavos (enteros) para no arrastrar errores de decimales
+    const mon = m => G.moneda === "CLP" ? "$" + Math.round(m / 100).toLocaleString("es-CL") : (m / 100).toLocaleString("es-CL", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+    let aviso = "";
+    (function importar() {
+      const q = new URLSearchParams(location.search).get("g");
+      if (!q) return;
+      try {
+        const d = deb64(q);
+        history.replaceState(null, "", location.pathname);
+        if ((d.c === "CLP" || d.c === "EUR") && d.c !== G.moneda && G.gastos.length) { aviso = "El enlace usa otra moneda que tus gastos: no se sumó nada."; return; }
+        if (d.c === "CLP" || d.c === "EUR") G.moneda = d.c;
+        (Array.isArray(d.p) ? d.p : []).map(limpiar).filter(Boolean).slice(0, 12).forEach(n => { if (!G.personas.includes(n)) G.personas.push(n); });
+        const ids = new Set(G.gastos.map(x => x.id));
+        let nuevos = 0;
+        (Array.isArray(d.g) ? d.g : []).slice(0, 500).forEach(x => {
+          const g = { id: String(x.i || "").slice(0, 30), d: String(x.d || "").slice(0, 60), m: Math.round(+x.m), p: limpiar(x.p),
+            e: (Array.isArray(x.e) ? x.e : []).map(limpiar).filter(n => G.personas.includes(n)), f: String(x.f || "").slice(0, 10) };
+          if (!g.id || ids.has(g.id) || !(g.m > 0 && g.m < 1e11) || !G.personas.includes(g.p) || !g.e.length) return;
+          ids.add(g.id); G.gastos.push(g); nuevos++;
+        });
+        guardar();
+        aviso = nuevos ? `Se sumaron ${nuevos} gasto${nuevos > 1 ? "s" : ""} nuevo${nuevos > 1 ? "s" : ""} desde el enlace.` : "El enlace no traía gastos nuevos.";
+      } catch (e) {}
+    })();
+
+    function calcular() {
+      const pago = new Map(G.personas.map(n => [n, 0])), corr = new Map(G.personas.map(n => [n, 0]));
+      G.gastos.forEach(g => {
+        const n = g.e.length, base = Math.floor(g.m / n), resto = g.m - base * n;
+        pago.set(g.p, (pago.get(g.p) || 0) + g.m);
+        g.e.forEach((nom, i) => corr.set(nom, (corr.get(nom) || 0) + base + (i < resto ? 1 : 0)));
+      });
+      const neto = new Map(G.personas.map(n => [n, (pago.get(n) || 0) - (corr.get(n) || 0)]));
+      const deb = [...neto].filter(x => x[1] < 0).map(x => [x[0], -x[1]]).sort((a, b) => b[1] - a[1]);
+      const acr = [...neto].filter(x => x[1] > 0).map(x => [x[0], x[1]]).sort((a, b) => b[1] - a[1]);
+      const tr = [];
+      for (let i = 0, j = 0; i < deb.length && j < acr.length;) {
+        const m = Math.min(deb[i][1], acr[j][1]);
+        if (m > 0) tr.push([deb[i][0], acr[j][0], m]);
+        deb[i][1] -= m; acr[j][1] -= m;
+        if (deb[i][1] === 0) i++;
+        if (acr[j][1] === 0) j++;
+      }
+      return { pago, corr, neto, tr };
+    }
+
+    function pintar() {
+      const c = calcular(), pp = G.personas;
+      const total = G.gastos.reduce((s, g) => s + g.m, 0);
+      $("main").innerHTML = `<section class="wrap bloque gastos">
+        <div class="cabeza"><p class="eyebrow">Durante el viaje</p><h2>Gastos compartidos</h2>
+          <p>Anota quién pagó cada cosa y entre quiénes se reparte. El sitio calcula cuánto le debe cada uno a quién. Todo queda en este navegador; para juntar lo que anotó cada hermano, usa el enlace de sincronizar.</p></div>
+        ${aviso ? `<p class="aviso-ok">${esc(aviso)}</p>` : ""}
+        <div class="g-fila"><label>Quiénes viajan <input id="g-pers" placeholder="Ej: Juan, Pedro, Ana" value="${esc(pp.join(", "))}"></label>
+          <button type="button" class="btn ghost" id="g-guardar-pers">Guardar nombres</button>
+          <label>Moneda <select id="g-moneda"><option value="EUR"${G.moneda === "EUR" ? " selected" : ""}>Euros (€)</option><option value="CLP"${G.moneda === "CLP" ? " selected" : ""}>Pesos chilenos</option></select></label></div>
+        ${pp.length < 2 ? `<p class="nota-chica">Escribe al menos dos nombres separados por coma para empezar.</p>` : `
+        <form class="g-form" id="g-form"><h3>Anotar un gasto</h3>
+          <div class="g-campos"><label>Qué fue <input id="g-desc" maxlength="60" placeholder="Ej: Cena en Roma" required></label>
+          <label>Monto <input id="g-monto" inputmode="decimal" placeholder="0" required></label>
+          <label>Pagó <select id="g-pago">${pp.map(n => `<option>${esc(n)}</option>`).join("")}</select></label></div>
+          <fieldset class="g-entre"><legend>Se reparte entre</legend>${pp.map(n => `<label class="g-chk"><input type="checkbox" name="g-ent" value="${esc(n)}" checked> ${esc(n)}</label>`).join("")}</fieldset>
+          <button class="btn" type="submit">Agregar gasto</button><span id="g-msg" role="status"></span></form>
+        <div class="g-saldos"><h3>Cómo van las cuentas <small>Total gastado: ${mon(total)}</small></h3>
+          <table><thead><tr><th>Quién</th><th>Pagó</th><th>Le tocaba</th><th>Saldo</th></tr></thead><tbody>${pp.map(n => { const s = c.neto.get(n) || 0;
+            return `<tr><td>${esc(n)}</td><td>${mon(c.pago.get(n) || 0)}</td><td>${mon(c.corr.get(n) || 0)}</td><td class="${s > 0 ? "pos" : s < 0 ? "neg" : ""}">${s > 0 ? "+" : ""}${mon(s)}</td></tr>`; }).join("")}</tbody></table>
+          <p class="nota-chica">Saldo positivo: le deben plata. Negativo: debe.</p>
+          ${c.tr.length ? `<h4>Para dejar todo a mano</h4><ul class="g-pagos">${c.tr.map(([a, b, m]) => `<li><b>${esc(a)}</b> le paga <b>${mon(m)}</b> a <b>${esc(b)}</b></li>`).join("")}</ul>` : G.gastos.length ? `<p class="g-ok">Están a mano. 🎉</p>` : ""}
+          <div class="g-acciones"><button type="button" class="btn ghost" id="g-wsp">💬 Copiar resumen para WhatsApp</button><button type="button" class="btn ghost" id="g-link">🔗 Copiar enlace para sincronizar</button><span id="g-msg2" role="status"></span></div></div>
+        <div class="g-lista"><h3>Gastos anotados (${G.gastos.length})</h3>${G.gastos.length ? `<ul>${[...G.gastos].reverse().map(g => `<li><span><b>${esc(g.d)}</b><small>${esc(g.f)} · pagó ${esc(g.p)} · entre ${g.e.length === pp.length ? "todos" : esc(g.e.join(", "))}</small></span><span class="g-m">${mon(g.m)}</span><button type="button" data-del="${esc(g.id)}" aria-label="Borrar ${esc(g.d)}">×</button></li>`).join("")}</ul>` : `<p class="nota-chica">Todavía no hay gastos.</p>`}</div>`}
+      </section>`;
+    }
+    pintar();
+
+    const main = $("main");
+    const copiar = async (txt, msgId, ok) => {
+      let hecho = false;
+      try { await navigator.clipboard.writeText(txt); hecho = true; } catch (e) {}
+      if (!hecho) prompt("Copia este texto:", txt);
+      const m = $("#" + msgId); if (m) m.textContent = hecho ? ok : "";
+    };
+    main.addEventListener("submit", e => {
+      if (e.target.id !== "g-form") return;
+      e.preventDefault();
+      const desc = limpiarTexto($("#g-desc").value), monto = Math.round(parseFloat($("#g-monto").value.replace(",", ".")) * 100);
+      const ent = [...main.querySelectorAll('[name="g-ent"]:checked')].map(x => x.value);
+      if (!desc || !(monto > 0) || !ent.length) { $("#g-msg").textContent = "Revisa: qué fue, un monto mayor a cero y al menos una persona."; return; }
+      G.gastos.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), d: desc, m: monto, p: $("#g-pago").value, e: ent, f: new Date().toISOString().slice(0, 10) });
+      guardar(); aviso = ""; pintar();
+    });
+    const limpiarTexto = s => String(s).replace(/[<>]/g, "").trim().slice(0, 60);
+    main.addEventListener("click", e => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.id === "g-guardar-pers") {
+        const nuevos = [...new Set($("#g-pers").value.split(",").map(limpiar).filter(Boolean))].slice(0, 12);
+        const usados = new Set(G.gastos.flatMap(g => [g.p, ...g.e]));
+        G.personas = [...nuevos, ...[...usados].filter(n => !nuevos.includes(n))];
+        guardar(); aviso = ""; pintar();
+      } else if (b.dataset.del) {
+        if (confirm("¿Borrar este gasto?")) { G.gastos = G.gastos.filter(g => g.id !== b.dataset.del); guardar(); aviso = ""; pintar(); }
+      } else if (b.id === "g-wsp") {
+        const c = calcular(), l = ["*Gastos del viaje* · total " + mon(G.gastos.reduce((s, g) => s + g.m, 0)), ""];
+        G.personas.forEach(n => { const s = c.neto.get(n) || 0; l.push(n + ": " + (s > 0 ? "+" : "") + mon(s)); });
+        l.push("", c.tr.length ? "Para dejar todo a mano:" : "Estamos a mano.");
+        c.tr.forEach(([a, bb, m]) => l.push(a + " le paga " + mon(m) + " a " + bb));
+        copiar(l.join("\n"), "g-msg2", "¡Resumen copiado!");
+      } else if (b.id === "g-link") {
+        const data = { c: G.moneda, p: G.personas, g: G.gastos.map(g => ({ i: g.id, d: g.d, m: g.m, p: g.p, e: g.e, f: g.f })) };
+        copiar(location.origin + location.pathname + "?g=" + b64(data), "g-msg2", "¡Enlace copiado! Al abrirlo, los demás suman tus gastos a los suyos.");
+      }
+    });
+    main.addEventListener("change", e => {
+      if (e.target.id === "g-moneda") {
+        if (G.gastos.length && !confirm("Ya hay gastos anotados. Cambiar la moneda no los convierte: los montos quedarán igual. ¿Seguir?")) { e.target.value = G.moneda; return; }
+        G.moneda = e.target.value; guardar(); aviso = ""; pintar();
+      }
+    });
+  }
+
   function frasesHtml(id) {
     const f = FRASES[id];
     if (!f) return "";
     return `<section class="wrap bloque" id="frases"><div class="cabeza"><p class="eyebrow">Para el viaje</p><h2>Frases útiles</h2><p>${esc(f[0])}. Arriba va lo que quieres decir, en negrita cómo se dice y debajo cómo se lee.</p></div>
       <div class="frases">${f[1].map(([es, x, pron]) => `<div><small>${esc(es)}</small><b>${esc(x)}</b>${pron ? `<i>${esc(pron)}</i>` : ""}</div>`).join("")}</div></section>`;
+  }
+
+  // Transporte y cuidados por país (escrito de memoria: confirmar antes de viajar)
+  const VIAJE = {
+    francia: {
+      transporte: [
+        ["Trenes", "SNCF Connect (app y web) vende los trenes de toda Francia. Los TGV llevan asiento reservado y los pasajes se abren unos 3 meses antes: comprar temprano sale mucho más barato."],
+        ["Low cost", "OUIGO es el TGV económico: más barato, pero cobra maletas extra y a veces sale de estaciones más lejos del centro."],
+        ["Validar el boleto", "Los pasajes digitales (código QR) no se validan. Los de papel sin reserva, como muchos regionales TER, hay que validarlos («composter») en las máquinas del andén antes de subir."],
+        ["Dentro de París", "Metro, bus y RER funcionan con la tarjeta Navigo Easy o la app de Île-de-France Mobilités; confirmar tarifas vigentes. Desde el aeropuerto CDG, el RER B."],
+        ["Auto", "Para Mussy y Beaune: licencia de conducir internacional recomendada y peajes en las autopistas."]],
+      cuidado: [
+        ["París", "Carteristas en el metro, el Louvre, la Torre Eiffel y las escaleras de Montmartre. Ojo con quien pide firmar una petición o te ata una pulsera «de regalo»: es para cobrar o robar."],
+        ["París", "Los restaurantes con carta de fotos junto a los monumentos suelen ser caros y malos: caminar dos calles."],
+        ["Niza", "Cuidar bolsos y celulares en la Promenade y en la playa; no dejarlos sobre la mesa."]]
+    },
+    italia: {
+      transporte: [
+        ["Trenes", "Trenitalia (Frecciarossa y regionales) e Italo (alta velocidad, privado) compiten entre las ciudades grandes: comparar precio en ambos. Las Frecce llevan asiento reservado."],
+        ["Validar el boleto", "Los regionales sin hora ni asiento hay que validarlos en las máquinas del andén antes de subir; sin eso hay multa. Los digitales con QR no."],
+        ["Cinque Terre", "Para moverse entre los pueblos conviene la Cinque Terre Card con trenes; el servicio va muy lleno: salir temprano."],
+        ["En las ciudades", "Florencia se recorre a pie y en Venecia el transporte es el vaporetto (bus acuático). Roma tiene un metro limitado: se camina o se usa bus y tranvía."],
+        ["Auto", "Los centros históricos tienen ZTL (zonas de tráfico limitado): entrar en auto sin permiso da multas altas que llegan meses después. Mejor no usar auto en las ciudades."]],
+      cuidado: [
+        ["Roma", "Carteristas en la línea A del metro y en buses llenos. Falsos «gladiadores» cobran por las fotos. Tomar solo taxis oficiales (blancos, con taxímetro)."],
+        ["Roma", "El «coperto» es un cobro por cubierto, normal en Italia; revisar si el servicio ya viene incluido antes de dejar propina."],
+        ["Florencia", "Carteristas cerca del Duomo y el Ponte Vecchio."],
+        ["Venecia", "Preguntar el precio antes en los bares y restaurantes de la plaza San Marcos: un café en mesa cuesta mucho más que en la barra."],
+        ["Milán", "Quienes ofrecen pulseritas o maíz para las palomas frente al Duomo cobran después."],
+        ["Nápoles", "Cuidar celulares y bolsos en las zonas llenas y en el tren a Pompeya; pactar la tarifa del taxi antes de subir."]]
+    },
+    espana: {
+      transporte: [
+        ["Trenes", "Renfe (AVE, Alvia, Avant) y los privados Ouigo e Iryo unen las ciudades grandes. Todos llevan asiento reservado; comprar con anticipación baja el precio."],
+        ["En la estación", "Para los trenes de alta velocidad hay revisión de equipaje tipo aeropuerto: llegar unos 30 minutos antes."],
+        ["En las ciudades", "Madrid y Barcelona tienen metro con tarjetas recargables (en Barcelona, la T-casual para varios viajes); confirmar precios vigentes. De los aeropuertos hay metro y bus al centro."],
+        ["Sevilla", "El aeropuerto no tiene tren: hay bus directo al centro."]],
+      cuidado: [
+        ["Barcelona", "Es de las ciudades con más carteristas: Las Ramblas, el metro, la Sagrada Familia y la playa. Bolso adelante y nada en el bolsillo de atrás."],
+        ["Madrid", "En la Puerta del Sol y la Plaza Mayor, quienes regalan «ramitas de romero» o leen la mano piden dinero después."],
+        ["Sevilla y Granada", "La misma estafa del romero cerca de la catedral y la Alhambra: no aceptar regalos de desconocidos."]]
+    }
+  };
+  function viajeHtml(id) {
+    const v = VIAJE[id];
+    if (!v) return "";
+    const li = ([a, b]) => `<li><b>${esc(a)}</b> ${esc(b)}</li>`;
+    return `<section class="wrap bloque" id="moverse"><div class="cabeza"><p class="eyebrow">Para el viaje</p><h2>Moverse y cuidarse</h2>
+      <p>Escrito de memoria y con lo más conocido: confirmar horarios, precios y reglas en los sitios oficiales antes de viajar.</p></div>
+      <div class="viaje-grid"><div><h3>Transporte</h3><ul>${v.transporte.map(li).join("")}</ul></div>
+      <div><h3>Cuidado con…</h3><ul>${v.cuidado.map(li).join("")}</ul><p class="nota-chica">Emergencias en toda la Unión Europea: 112.</p></div></div></section>`;
   }
 
   function pais(id) {
@@ -691,11 +875,12 @@
     $("main").innerHTML = `
     <section class="hero corto" style="--foto:url('${IMGABS}${p.foto}')">
       <div class="wrap hero-in"><p class="eyebrow">${esc(p.lema)}</p><h1>${esc(p.nombre)}</h1><p class="lede">${esc(p.intro)}</p>
-      <nav class="saltos" aria-label="Ciudades">${p.ciudades.map(c => `<a href="#${c}">${esc(ciudad(c).nombre)}</a>`).join("")}${FRASES[id] ? '<a href="#frases">Frases útiles</a>' : ""}</nav></div>
+      <nav class="saltos" aria-label="Ciudades">${p.ciudades.map(c => `<a href="#${c}">${esc(ciudad(c).nombre)}</a>`).join("")}${FRASES[id] ? '<a href="#frases">Frases útiles</a>' : ""}${VIAJE[id] ? '<a href="#moverse">Moverse y cuidarse</a>' : ""}</nav></div>
     </section>
     <section class="wrap bloque"><div class="mapa medio" id="mapa-pais" aria-label="Mapa de ${esc(p.nombre)}"></div></section>
     <div class="wrap">${p.ciudades.map(ficha).join("")}</div>
-    ${frasesHtml(id)}`;
+    ${frasesHtml(id)}
+    ${viajeHtml(id)}`;
     alVer($("#mapa-pais"), () => {
       const m = crearMapa("mapa-pais");
       const pts = p.ciudades.map(id => ciudad(id).c);
@@ -736,6 +921,7 @@
   header();
   if (PAGE === "inicio") inicio();
   else if (PAGE === "mussy") return location.replace(`${BASE}francia/#mussy`); // página antigua: ahora Mussy es una parada dentro de Francia
+  else if (PAGE === "gastos") gastos();
   else pais(PAGE);
   footer();
   if (location.hash) setTimeout(() => document.getElementById(location.hash.slice(1))?.scrollIntoView(), 50);
