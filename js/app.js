@@ -202,6 +202,7 @@
       <div class="acciones-ruta">
         <button type="button" class="btn ghost" id="btn-compartir">🔗 Copiar enlace de esta ruta</button>
         <button type="button" class="btn ghost" id="btn-wsp">💬 Copiar resumen para WhatsApp</button>
+        <button type="button" class="btn ghost" id="btn-ics">📅 Descargar calendario (.ics)</button>
         <button type="button" class="btn ghost" id="btn-imprimir">🖨 Imprimir / guardar PDF</button>
         <span id="cmp-msg" aria-live="polite"></span>
       </div>
@@ -436,6 +437,44 @@
       if (antes && n && n !== antes && VT.personas[kp(antes)]) { VT.personas[kp(n)] = VT.personas[kp(antes)]; delete VT.personas[kp(antes)]; }
       VT.yo = n; guardarVotos(); pintarVotos();
     });
+    // Calendario (.ics): vuelos, cada ciudad con sus noches y los plazos pendientes, a partir de la fecha de salida
+    function descargarICS() {
+      const msg = $("#cmp-msg");
+      const [y, m, d] = String(AN.fecha || "").split("-").map(Number);
+      if (!y) { msg.textContent = "Primero pon la fecha de salida en «Antes de viajar»."; return; }
+      const base = Date.UTC(y, m - 1, d), CRLF = "\r\n";
+      const fmt = ms => new Date(ms).toISOString().slice(0, 10).replace(/-/g, "");
+      const dia = n => fmt(base + n * 864e5);
+      const esc2 = s => String(s).replace(/([,;])/g, "\\$1").replace(/\n/g, "\\n");
+      const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+      const ev = [];
+      const add = (uid, ini, fin, titulo, desc) => ev.push(["BEGIN:VEVENT", "UID:" + uid + "@rumbo-a-mussy", "DTSTAMP:" + stamp,
+        "DTSTART;VALUE=DATE:" + ini, "DTEND;VALUE=DATE:" + fin, "SUMMARY:" + esc2(titulo), desc ? "DESCRIPTION:" + esc2(desc) : "", "END:VEVENT"].filter(Boolean).join(CRLF));
+      const r = rutaActual;
+      add("ida", dia(0), dia(1), "Vuelo Santiago → " + r.paradas[0].ciudad.nombre, "Noche a bordo.");
+      r.paradas.forEach((p, i) => {
+        if (p.id === "beaune") return;
+        const nombre = p.id === "mussy" ? "Mussy-la-Fosse y Beaune (de paso)" : p.ciudad.nombre + " · " + nochesTxt(p.noches);
+        const tr = r.tramos[i];
+        add("par" + i, dia(p.desde), dia(p.hasta + 1), nombre, tr ? tr.tipo + " siguiente, ~" + tr.horas + " h" : "");
+      });
+      add("vuelta", dia(r.dias), dia(r.dias + 1), "Vuelo " + ciudad(r.salidaId).nombre + " → Santiago", "");
+      const hoy = Date.now(), plazo = (uid, sem, titulo, nota) => {
+        const ms = base - sem * 7 * 864e5;
+        if (ms >= hoy) add(uid, fmt(ms), fmt(ms + 864e5), "Plazo: " + titulo, nota);
+      };
+      TAREAS.forEach(([n, mes, nota], i) => { if (!AN.hechos["t" + i]) plazo("t" + i, mes * 4.345, n, nota); });
+      const vistos = new Set();
+      RESERVAS.filter(([c, n]) => r.ciudades.has(c) && !vistos.has(n) && vistos.add(n))
+        .forEach(([c, n, nota, sem]) => { if (!AN.hechos["r" + n]) plazo("r" + c + n, sem, "reservar " + n, nota); });
+      const txt = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Rumbo a Mussy//ES", "CALSCALE:GREGORIAN", ...ev, "END:VCALENDAR"].join(CRLF) + CRLF;
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([txt], { type: "text/calendar;charset=utf-8" }));
+      a.download = "rumbo-a-mussy.ics";
+      document.body.appendChild(a); a.click(); a.remove();
+      msg.textContent = "Calendario descargado. Ábrelo para agregarlo a tu calendario.";
+    }
+    document.addEventListener("click", e => { if (e.target.closest("#btn-ics")) descargarICS(); });
     const it = $("#itinerario");
     const ids = () => [...it.querySelectorAll("li.mov")].map(l => l.dataset.id);
     it.addEventListener("click", e => {
@@ -530,16 +569,47 @@
   });
 
   // ---------- Página de país ----------
+  const FRASES = {
+    francia: ["Francés básico", [
+      ["Buenos días / hola", "Bonjour", "bon-yur"], ["Gracias", "Merci", "mer-si"], ["Por favor", "S'il vous plaît", "sil vu ple"],
+      ["Disculpe", "Excusez-moi", "eks-kiu-sé mua"], ["¿Habla español o inglés?", "Parlez-vous espagnol ou anglais ?", "par-lé vu es-pa-ñol u an-gle"],
+      ["No entiendo", "Je ne comprends pas", "yu nu com-prán pa"], ["¿Dónde está…?", "Où est… ?", "u e"],
+      ["La cuenta, por favor", "L'addition, s'il vous plaît", "la-di-sión sil vu ple"], ["Una mesa para cuatro", "Une table pour quatre", "iun tabl pur catr"],
+      ["Tengo alergia a…", "J'ai une allergie à…", "ye iun a-ler-yi a"], ["Agua de la llave (gratis)", "Une carafe d'eau", "iun ca-raf do"],
+      ["¿Cuánto cuesta?", "C'est combien ?", "se com-biên"]]],
+    italia: ["Italiano básico", [
+      ["Buenos días / hola", "Buongiorno", "buon-yorno"], ["Gracias", "Grazie", "gra-tsie"], ["Por favor", "Per favore", "per fa-vore"],
+      ["Disculpe", "Scusi", "scu-si"], ["¿Habla español o inglés?", "Parla spagnolo o inglese?", "par-la spa-ñolo o in-gle-se"],
+      ["No entiendo", "Non capisco", "non ca-pis-co"], ["¿Dónde está…?", "Dov'è… ?", "do-ve"],
+      ["La cuenta, por favor", "Il conto, per favore", "il con-to per fa-vore"], ["Una mesa para cuatro", "Un tavolo per quattro", "un ta-volo per cuat-tro"],
+      ["Tengo alergia a…", "Ho un'allergia a…", "o un a-ler-yi-a a"], ["Un boleto para…", "Un biglietto per…", "un bi-lietto per"],
+      ["¿Cuánto cuesta?", "Quanto costa?", "cuan-to cos-ta"]]],
+    espana: ["Español de España (no es igual al chileno)", [
+      ["Vale", "Quiere decir «ok» o «de acuerdo»", ""], ["Coger", "Tomar: «coger el metro» es normal allá", ""],
+      ["Zumo", "Jugo", ""], ["Patatas", "Papas (la tortilla española es de papas)", ""], ["Móvil", "Celular", ""],
+      ["Ordenador", "Computador", ""], ["Piso", "Departamento", ""], ["Vosotros", "Ustedes (informal, entre amigos)", ""],
+      ["Caña", "Cerveza chica de barril", ""], ["Tapas y raciones", "Porciones para compartir; la ración es más grande", ""],
+      ["La cuenta", "Se pide con «la cuenta, por favor»; la propina no es obligatoria", ""],
+      ["Pronunciación", "La «c» antes de e/i y la «z» suenan como «th» en inglés (Barcelona, Zaragoza)", ""]]]
+  };
+  function frasesHtml(id) {
+    const f = FRASES[id];
+    if (!f) return "";
+    return `<section class="wrap bloque" id="frases"><div class="cabeza"><p class="eyebrow">Para el viaje</p><h2>Frases útiles</h2><p>${esc(f[0])}. Arriba va lo que quieres decir, en negrita cómo se dice y debajo cómo se lee.</p></div>
+      <div class="frases">${f[1].map(([es, x, pron]) => `<div><small>${esc(es)}</small><b>${esc(x)}</b>${pron ? `<i>${esc(pron)}</i>` : ""}</div>`).join("")}</div></section>`;
+  }
+
   function pais(id) {
     const p = V.paises.find(x => x.id === id);
     document.title = `${p.nombre} · ${V.titulo}`;
     $("main").innerHTML = `
     <section class="hero corto" style="--foto:url('${IMGABS}${p.foto}')">
       <div class="wrap hero-in"><p class="eyebrow">${esc(p.lema)}</p><h1>${esc(p.nombre)}</h1><p class="lede">${esc(p.intro)}</p>
-      <nav class="saltos" aria-label="Ciudades">${p.ciudades.map(c => `<a href="#${c}">${esc(ciudad(c).nombre)}</a>`).join("")}</nav></div>
+      <nav class="saltos" aria-label="Ciudades">${p.ciudades.map(c => `<a href="#${c}">${esc(ciudad(c).nombre)}</a>`).join("")}${FRASES[id] ? '<a href="#frases">Frases útiles</a>' : ""}</nav></div>
     </section>
     <section class="wrap bloque"><div class="mapa medio" id="mapa-pais" aria-label="Mapa de ${esc(p.nombre)}"></div></section>
-    <div class="wrap">${p.ciudades.map(ficha).join("")}</div>`;
+    <div class="wrap">${p.ciudades.map(ficha).join("")}</div>
+    ${frasesHtml(id)}`;
     alVer($("#mapa-pais"), () => {
       const m = crearMapa("mapa-pais");
       const pts = p.ciudades.map(id => ciudad(id).c);

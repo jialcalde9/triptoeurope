@@ -3,6 +3,8 @@
 Lo más nuevo arriba. Cada cambio publicado agrega una entrada.
 
 ## 2026-11-20
+- **Calendario (.ics)**: botón "Descargar calendario" que genera un archivo para Google Calendar, Outlook o el calendario del celular, con la fecha de salida de "Antes de viajar": los vuelos, cada ciudad con sus noches y los plazos pendientes de tareas y reservas. Si falta la fecha de salida, avisa.
+- **Frases útiles** en las páginas de Francia, Italia y España: frases de viaje en francés e italiano con cómo se leen, y en España las diferencias con el español chileno (vale, coger, zumo, etc.). Versión de enlaces `?v=13`.
 - **Vista previa al compartir**: al pegar el enlace del sitio en WhatsApp u otras apps ahora aparece una foto de París, el título y una descripción corta (antes salía solo el texto del enlace).
 - **Copiar resumen para WhatsApp**: botón nuevo que copia un texto listo para pegar con la llegada y salida, las ciudades con sus noches, el costo aproximado por persona y el enlace para ver y votar. Versión de enlaces `?v=12`.
 - **Llegada y salida por Madrid o París**: nuevo selector en el armador ("Llegamos a" y "Volvemos desde"). Se puede entrar por Madrid, y volver desde Madrid, París o la última ciudad. La ruta se ordena desde la ciudad de llegada; si entran y salen por la misma, arma un circuito y agrega el tramo de regreso (con su costo) antes del vuelo a Santiago. El itinerario muestra "Vuelo Santiago → Madrid" y "Vuelo Madrid → Santiago". Se avisa que Madrid suele salir más barato desde Santiago; falta confirmar precios en Google Flights. El presupuesto sigue usando el pasaje que se ponga a mano en el simulador. Versión de enlaces `?v=11`.
