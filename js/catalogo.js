@@ -101,5 +101,33 @@ window.CATALOGO = {
       noches: { paris: 4, lucerna: 2, interlaken: 1, venecia: 2, florencia: 3, roma: 3, niza: 2, barcelona: 3, madrid: 2 } },
     { id: "central", n: "Europa central", d: "Londres, Ámsterdam, Múnich, Praga y Viena.", paises: ["francia", "reino-unido", "paises-bajos", "belgica", "alemania", "chequia", "austria"],
       noches: { paris: 4, londres: 3, brujas: 1, amsterdam: 3, munich: 3, praga: 3, viena: 3, salzburgo: 1 } }
+  ],
+
+  // Rutas finalistas de 3 semanas (20 noches) entrando y saliendo por Madrid o Barcelona. orden = paradas intermedias en ese orden.
+  finalistas: [
+    { id: "fa", letra: "A", n: "Circuito Madrid", d: "Ida y vuelta por Madrid: París y Mussy, el sur de Francia, Italia y regreso por Barcelona.",
+      paises: ["francia", "italia", "espana"], entrada: "madrid", salida: "madrid",
+      noches: { madrid: 2, paris: 4, lyon: 1, niza: 2, cinque: 2, florencia: 3, roma: 3, barcelona: 3 },
+      orden: ["paris", "mussy", "lyon", "niza", "cinque", "florencia", "roma", "barcelona"],
+      pros: ["Ida y vuelta por la misma ciudad: suele ser lo más fácil de cotizar.", "Recorre España, Francia e Italia en un solo viaje."],
+      contras: ["Ocho ciudades en tres semanas: mucho movimiento.", "Vuelo Madrid–París al empezar y tren Barcelona–Madrid al final."] },
+    { id: "fb", letra: "B", n: "Italia a fondo", d: "Entrada por Barcelona, mucha Italia (Roma, Florencia, Venecia) y salida desde París pasando por Mussy.",
+      paises: ["francia", "italia", "espana"], entrada: "barcelona", salida: "paris",
+      noches: { barcelona: 3, niza: 2, cinque: 2, florencia: 3, roma: 4, venecia: 3, paris: 3 },
+      orden: ["niza", "cinque", "florencia", "roma", "venecia", "mussy"],
+      pros: ["Más tiempo en Italia: Roma 4 noches y Venecia.", "Termina en París, con Mussy justo antes."],
+      contras: ["Entrada y salida por ciudades distintas: cotizar el pasaje así.", "Tramo largo de Venecia a Mussy."] },
+    { id: "fc", letra: "C", n: "España y Mussy", d: "El sur de España con calma, Barcelona, Lyon y Mussy; salida por París. Sin Italia.",
+      paises: ["francia", "espana"], entrada: "madrid", salida: "paris",
+      noches: { madrid: 3, sevilla: 3, granada: 3, barcelona: 4, lyon: 2, paris: 5 },
+      orden: ["sevilla", "granada", "barcelona", "lyon", "mussy"],
+      pros: ["Menos traslados largos y más días en cada ciudad.", "Madrid, Sevilla y Granada se recorren a pie, con buena comida."],
+      contras: ["No incluye Italia.", "Sevilla y Granada son muy calurosas en julio y agosto."] },
+    { id: "fd", letra: "D", n: "Madrid a Barcelona", d: "Como la A, pero entrando por Madrid y saliendo por Barcelona: sin devolverse.",
+      paises: ["francia", "italia", "espana"], entrada: "madrid", salida: "barcelona",
+      noches: { madrid: 2, paris: 4, lyon: 1, niza: 2, cinque: 2, florencia: 3, roma: 3, barcelona: 3 },
+      orden: ["paris", "mussy", "lyon", "niza", "cinque", "florencia", "roma"],
+      pros: ["No hay tramo de regreso: se ahorra un traslado.", "Mismo recorrido que la A."],
+      contras: ["Pasaje con entrada y salida por aeropuertos distintos: puede costar distinto.", "Madrid y Barcelona deben tener buenas tarifas ambas."] }
   ]
 };

@@ -552,3 +552,32 @@ html { scroll-padding-top: calc(var(--top-h, 60px) + 52px); }
 .g-ayuda ol { margin: 10px 0 4px; padding-left: 20px; display: grid; gap: 8px; font-size: .93rem; }
 .g-x { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; padding: 12px; border: 1px dashed var(--line); border-radius: 12px; }
 .g-x .nota-chica { grid-column: 1 / -1; margin: 0; font-weight: 600; }
+
+/* Rutas finalistas */
+.rf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 28px; }
+.rf { display: grid; gap: 12px; align-content: start; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.rf header { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; }
+.rf header h3 { margin: 0; font-size: 1.25rem; }
+.rf header p { margin: 4px 0 0; color: var(--muted); font-size: .88rem; }
+.rf-letra { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--bg); font-weight: 800; }
+.rf-costo { text-align: right; font-family: var(--font-display); font-size: 1.7rem; font-weight: 400; line-height: 1; color: var(--accent); }
+.rf-costo small { display: block; font-family: var(--font-mono); font-size: .62rem; color: var(--muted); margin-top: 4px; }
+.rf-barata { margin: 0; padding: 4px 10px; width: fit-content; border-radius: 999px; background: color-mix(in srgb, var(--panorama) 20%, var(--surface)); font-weight: 700; font-size: .8rem; }
+.rf-vuelos { margin: 0; font-size: .92rem; }
+.rf-ruta { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.rf-ruta li { padding: 6px 10px; border-radius: 10px; background: var(--accent-soft); display: grid; font-size: .86rem; }
+.rf-ruta small { color: var(--muted); font-size: .72rem; }
+.rf-datos { margin: 0; display: grid; gap: 6px; }
+.rf-datos > div { display: grid; grid-template-columns: 150px 1fr; gap: 10px; font-size: .88rem; padding-top: 6px; border-top: 1px solid var(--line); }
+.rf-datos dt { color: var(--muted); } .rf-datos dd { margin: 0; font-weight: 600; }
+.rf-pc { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: .86rem; }
+.rf-pc h4 { margin: 0 0 4px; } .rf-pc ul { margin: 0; padding-left: 16px; display: grid; gap: 4px; }
+.rf-lado { margin: 8px 0 10px; }
+.rf-tabla { width: 100%; min-width: 640px; border-collapse: collapse; font-size: .88rem; }
+.rf-tabla th, .rf-tabla td { text-align: left; vertical-align: top; padding: 8px 10px; border-top: 1px solid var(--line); }
+.rf-tabla thead th { border-top: 0; font-size: .82rem; }
+.rf-tabla tbody th { color: var(--muted); width: 130px; font-weight: 600; }
+.rf-tabla td.mejor { color: var(--panorama); font-weight: 700; }
+@media (max-width: 860px) { .rf-grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .rf-pc { grid-template-columns: 1fr; } .rf-datos > div { grid-template-columns: 1fr; gap: 2px; } .rf header { grid-template-columns: auto 1fr; } .rf-costo { grid-column: 1 / -1; text-align: left; } }
+@media print { .rf { break-inside: avoid; } .rf button { display: none; } }

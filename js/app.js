@@ -50,7 +50,7 @@
     h.className = "top";
     h.innerHTML = `<div class="wrap top-in">
       <a class="logo" href="${BASE}"><span class="logo-mark" aria-hidden="true"></span>${esc(V.titulo)}</a>
-      <nav aria-label="Secciones">${links.map(enlace).join("")}${mas}${enlace(["gastos", "Gastos", `${BASE}gastos/`])}${enlace(["presupuesto", "Presupuesto", `${BASE}#presupuesto`])}</nav>
+      <nav aria-label="Secciones">${links.map(enlace).join("")}${mas}${enlace(["rutas", "Rutas", `${BASE}rutas/`])}${enlace(["gastos", "Gastos", `${BASE}gastos/`])}${enlace(["presupuesto", "Presupuesto", `${BASE}#presupuesto`])}</nav>
       <button class="tema" id="btn-tema" type="button" aria-label="Cambiar tema claro u oscuro">◐</button>
     </div>`;
     body.prepend(h);
@@ -160,7 +160,7 @@
         const orden = (Array.isArray(s.orden) ? s.orden : []).filter(ok);
         localStorage.setItem("rm-ruta", JSON.stringify({ ruta: null, paises, fuera: (Array.isArray(s.fuera) ? s.fuera : []).filter(ok), noches,
           dias: Math.max(14, Math.min(35, Math.round(+s.dias) || 21)), orden: orden.length ? orden : null,
-          entrada: ["paris", "madrid"].includes(s.entrada) ? s.entrada : "paris", salida: ["ultima", "paris", "madrid"].includes(s.salida) ? s.salida : "ultima" }));
+          entrada: ["paris", "madrid", "barcelona"].includes(s.entrada) ? s.entrada : "paris", salida: ["ultima", "paris", "madrid", "barcelona"].includes(s.salida) ? s.salida : "ultima" }));
         avisoImport = true;
         const nom = limpiar(d.n);
         if (nom && nom !== VT.yo && d.v && typeof d.v === "object") {
@@ -196,7 +196,7 @@
 
     <section class="wrap bloque" id="ruta">
       <div class="cabeza"><p class="eyebrow">Arma la ruta</p><h2>¿Por dónde vamos?</h2>
-        <p>Elige una ruta armada, o los países y días que quieras. El sitio ordena las ciudades desde la ciudad de llegada (París o Madrid), reparte las noches y recalcula el presupuesto. Puedes sacar ciudades o sumarles noches con − y +, y reordenar las paradas arrastrándolas en el itinerario.</p></div>
+        <p>Elige una ruta armada, o los países y días que quieras. El sitio ordena las ciudades desde la ciudad de llegada (París, Madrid o Barcelona), reparte las noches y recalcula el presupuesto. Puedes sacar ciudades o sumarles noches con − y +, y reordenar las paradas arrastrándolas en el itinerario.</p></div>
       <div class="armador" id="armador"></div>
       <p class="arm-total" id="arm-total" aria-live="polite"></p>
       ${avisoImport ? '<p class="aviso-ok">Se cargó una ruta compartida contigo. Puedes cambiarla como quieras.</p>' : ""}
@@ -678,6 +678,64 @@
       ["La cuenta", "Se pide con «la cuenta, por favor»; la propina no es obligatoria", ""],
       ["Pronunciación", "La «c» antes de e/i y la «z» suenan como «th» en inglés (Barcelona, Zaragoza)", ""]]]
   };
+  // ---------- Rutas finalistas: comparar de 3 a 4 rutas de 3 semanas ----------
+  function rutasPage() {
+    document.title = `Rutas finalistas · ${V.titulo}`;
+    const K = window.CATALOGO, CL = window.CLIMA || {};
+    // Se usan el armador y el simulador sin mostrarlos, solo para calcular rutas y costos con los ajustes del presupuesto
+    const armador = window.crearArmador(document.createElement("div"), () => {});
+    const sim = window.crearSimulador(document.createElement("div"), armador.ruta, () => {});
+    const millones = x => (x / 1e6).toFixed(1).replace(".", ",") + " M";
+    const MESL = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    const mesesBuenos = r => {
+      const ps = r.paradas.filter(p => p.noches > 0 && CL[p.id]), w = ps.reduce((s, p) => s + p.noches, 0);
+      if (!w) return [];
+      return MESL.filter((m, i) => {
+        const tx = ps.reduce((s, p) => s + CL[p.id][i][0] * p.noches, 0) / w, ll = ps.reduce((s, p) => s + CL[p.id][i][2] * p.noches, 0) / w;
+        return tx >= 18 && tx < 30 && ll <= 9;
+      });
+    };
+    const filas = K.finalistas.map(f => {
+      const r = armador.rutaArmada(f.id), tramos = r.regreso ? [...r.tramos, r.regreso] : r.tramos;
+      return { f, r, costo: sim.estimar(r), largo: Math.max(0, ...tramos.map(x => x.horas)), nTramos: tramos.length, meses: mesesBuenos(r),
+        ent: r.paradas[0].ciudad.nombre, sal: ciudad(r.salidaId).nombre };
+    });
+    const minimo = Math.min(...filas.map(x => x.costo));
+    const lista = a => a.map(esc).join(", ");
+    const tarjeta = x => `<article class="rf" id="ruta-${x.f.id}">
+      <header><span class="rf-letra">${esc(x.f.letra)}</span><div><h3>${esc(x.f.n)}</h3><p>${esc(x.f.d)}</p></div>
+        <b class="rf-costo">~${millones(x.costo)}<small>CLP por persona</small></b></header>
+      ${x.costo === minimo ? '<p class="rf-barata">La más barata de las cuatro</p>' : ""}
+      <p class="rf-vuelos">✈ Llegada: <b>${esc(x.ent)}</b> · Salida: <b>${esc(x.sal)}</b></p>
+      <ol class="rf-ruta">${x.r.paradas.filter(p => p.id !== "beaune").map(p => `<li><b>${esc(p.ciudad.nombre)}</b><small>${p.noches ? p.noches + " noche" + (p.noches > 1 ? "s" : "") : "de paso"}</small></li>`).join("")}</ol>
+      <dl class="rf-datos"><div><dt>Trenes y vuelos internos</dt><dd>${x.nTramos} tramos · ~${x.r.trenesEur} €</dd></div>
+        <div><dt>Tramo más largo</dt><dd>~${x.largo} h</dd></div>
+        <div><dt>Meses más cómodos</dt><dd>${x.meses.length ? lista(x.meses) : "ninguno cumple del todo"}</dd></div></dl>
+      <div class="rf-pc"><div><h4>A favor</h4><ul>${x.f.pros.map(s => `<li>${esc(s)}</li>`).join("")}</ul></div><div><h4>En contra</h4><ul>${x.f.contras.map(s => `<li>${esc(s)}</li>`).join("")}</ul></div></div>
+      <button type="button" class="btn" data-cargar="${esc(x.f.id)}">Cargar en el armador</button></article>`;
+    const fila = (t, fn, mejor) => `<tr><th>${t}</th>${filas.map(x => `<td${mejor && mejor(x) ? ' class="mejor"' : ""}>${fn(x)}</td>`).join("")}</tr>`;
+    $("main").innerHTML = `<section class="wrap bloque rutas-pg">
+      <div class="cabeza"><p class="eyebrow">Para decidir</p><h2>Rutas finalistas de 3 semanas</h2>
+        <p>Cuatro formas de armar el viaje, entrando y saliendo por Madrid o Barcelona. Los costos usan los ajustes de tu presupuesto (alojamiento, comida, trenes); el pasaje lo pones tú en el simulador, porque Madrid y Barcelona pueden salir distinto. Para ver una en detalle, cárgala en el armador.</p></div>
+      <div class="rf-grid">${filas.map(tarjeta).join("")}</div>
+      <h3 class="rf-lado">Lado a lado</h3>
+      <div class="cmp-tabla"><table class="rf-tabla"><thead><tr><th></th>${filas.map(x => `<th>${esc(x.f.letra)} · ${esc(x.f.n)}</th>`).join("")}</tr></thead><tbody>
+        ${fila("Costo por persona", x => "~" + millones(x.costo) + " CLP", x => x.costo === minimo)}
+        ${fila("Llegada y salida", x => esc(x.ent) + " → " + esc(x.sal))}
+        ${fila("Ciudades", x => x.r.paradas.filter(p => p.id !== "beaune").length)}
+        ${fila("Trenes y vuelos", x => x.nTramos + " tramos · ~" + x.r.trenesEur + " €")}
+        ${fila("Tramo más largo", x => "~" + x.largo + " h")}
+        ${fila("Meses más cómodos", x => x.meses.length ? lista(x.meses) : "—")}</tbody></table></div>
+      <p class="nota-chica">Costos aproximados, calculados con el simulador de presupuesto del inicio. Los vuelos internos se estiman por distancia; confirmar precios reales de pasajes y trenes. «Meses más cómodos»: 18 °C o más de máxima, poca lluvia y sin calor fuerte, con datos de 2015 a 2024.</p>
+    </section>`;
+    $("main").addEventListener("click", e => {
+      const b = e.target.closest("[data-cargar]");
+      if (!b) return;
+      armador.cargar(b.dataset.cargar);
+      location.href = `${BASE}#ruta`;
+    });
+  }
+
   // ---------- Gastos compartidos (todo se guarda en este navegador; se sincroniza con un enlace) ----------
   function gastos() {
     document.title = `Gastos · ${V.titulo}`;
@@ -958,6 +1016,7 @@
   if (PAGE === "inicio") inicio();
   else if (PAGE === "mussy") return location.replace(`${BASE}francia/#mussy`); // página antigua: ahora Mussy es una parada dentro de Francia
   else if (PAGE === "gastos") gastos();
+  else if (PAGE === "rutas") rutasPage();
   else pais(PAGE);
   footer();
   if (location.hash) setTimeout(() => document.getElementById(location.hash.slice(1))?.scrollIntoView(), 50);

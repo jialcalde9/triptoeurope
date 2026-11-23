@@ -17,7 +17,7 @@ window.crearArmador = function (raiz, alCambiar) {
 
   function desdeRuta(r) {
     const fuera = Object.keys(C).filter(id => r.paises.includes(C[id].pais) && !C[id].fija && !(id in r.noches));
-    return { ruta: r.id, entrada: "paris", salida: "ultima", paises: [...r.paises], fuera, noches: { ...r.noches }, dias: Object.values(r.noches).reduce((a, b) => a + b, 0) + 1 };
+    return { ruta: r.id, entrada: r.entrada || "paris", salida: r.salida || "ultima", orden: r.orden ? [...r.orden] : null, paises: [...r.paises], fuera, noches: { ...r.noches }, dias: Object.values(r.noches).reduce((a, b) => a + b, 0) + 1 };
   }
   let s;
   try { s = JSON.parse(localStorage.getItem(KEY)) || desdeRuta(K.rutas[0]); } catch (e) { s = desdeRuta(K.rutas[0]); }
@@ -135,9 +135,9 @@ window.crearArmador = function (raiz, alCambiar) {
           <input type="range" id="arm-dias" min="14" max="35" step="1" value="${conAjuste ? r.dias : s.dias}"></label>
       </div>
       <div class="arm-vuelos">
-        <label>Llegamos a <select id="arm-ent"><option value="paris"${(s.entrada || "paris") === "paris" ? " selected" : ""}>París</option><option value="madrid"${s.entrada === "madrid" ? " selected" : ""}>Madrid</option></select></label>
-        <label>Volvemos desde <select id="arm-sal"><option value="ultima"${(s.salida || "ultima") === "ultima" ? " selected" : ""}>La última ciudad</option><option value="madrid"${s.salida === "madrid" ? " selected" : ""}>Madrid</option><option value="paris"${s.salida === "paris" ? " selected" : ""}>París</option></select></label>
-        <small>Desde Santiago, Madrid suele salir más barato que París: conviene comparar pasajes en Google Flights con las fechas tentativas.</small>
+        <label>Llegamos a <select id="arm-ent"><option value="paris"${(s.entrada || "paris") === "paris" ? " selected" : ""}>París</option><option value="madrid"${s.entrada === "madrid" ? " selected" : ""}>Madrid</option><option value="barcelona"${s.entrada === "barcelona" ? " selected" : ""}>Barcelona</option></select></label>
+        <label>Volvemos desde <select id="arm-sal"><option value="ultima"${(s.salida || "ultima") === "ultima" ? " selected" : ""}>La última ciudad</option><option value="madrid"${s.salida === "madrid" ? " selected" : ""}>Madrid</option><option value="barcelona"${s.salida === "barcelona" ? " selected" : ""}>Barcelona</option><option value="paris"${s.salida === "paris" ? " selected" : ""}>París</option></select></label>
+        <small>Desde Santiago, Madrid y Barcelona suelen salir más baratos que París: conviene comparar pasajes en Google Flights con las fechas tentativas.</small>
       </div>
       ${r.quitadas.length ? `<p class="aviso">No alcanzan los días para ${r.quitadas.map(id => esc(C[id].nombre)).join(", ")}. Sube los días o elige menos países.</p>` : ""}
       <div class="arm-ciudades">${s.paises.map(p => {
@@ -204,7 +204,9 @@ window.crearArmador = function (raiz, alCambiar) {
     if (v < 1) { s.fuera.push(id); delete s.noches[id]; } else s.noches[id] = Math.min(v, 10);
     s.ruta = null; guardar(); render();
   }
+  const todas = () => [...K.rutas, ...(K.finalistas || [])];
+  function cargar(id) { s = desdeRuta(todas().find(x => x.id === id)); guardar(); render(); }
   const estado = () => ({ paises: s.paises, fuera: s.fuera, noches: s.noches, dias: ruta().dias, orden: s.orden || null, entrada: s.entrada || "paris", salida: s.salida || "ultima" });
   render();
-  return { estado, mover, noches, ruta: () => ruta(), rutaArmada: id => ruta(desdeRuta(K.rutas.find(x => x.id === id))), rutas: K.rutas, C };
+  return { estado, mover, noches, ruta: () => ruta(), rutaArmada: id => ruta(desdeRuta(todas().find(x => x.id === id))), cargar, rutas: K.rutas, C };
 };
